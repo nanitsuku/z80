@@ -84,6 +84,8 @@ class Core extends Module {
   val machine_state_next = RegInit(M1_state)
 
   val mem_refer_addr = RegInit(0.U(16.W))
+//  val mem_refer_addr = Wirefault(0.U(16.W))
+//  val mem_refer_addr = WireDefault(PC_next)
 
   io.bus.data1 := 0.U
 
@@ -140,7 +142,9 @@ class Core extends Module {
           regfiles_front(dst_reg) := regfiles_front(src_reg)
           opcode_index := 0.U
         }
-        PC_next := PC_next + 1.U
+        when(m1_t_cycle===3.U) {
+          PC_next := PC_next + 1.U
+        }
         regfiles_front(dst_reg) := regfiles_front(src_reg)
       }
       is(M2_state) {
@@ -151,21 +155,46 @@ class Core extends Module {
     }
   }
 
-  def ld_n(instruction:UInt) {
-    printf(p"ld_n${instruction}\n")
+  def ld_a_n(instruction:UInt) {
+    printf(p"ld_a_n${instruction}\n")
+//    io.bus.addr := mem_refer_addr
     switch (machine_state) {
       is (M1_state) {
-        machine_state_next := M2_state
-        opcode_index := 1.U
-        mem_refer_addr := PC + 1.U
+//        mem_refer_addr := PC_next
+        when(m1_t_cycle === 2.U) {
+          PC_next := PC_next + 1.U
+//          mem_refer_addr := PC_next
+        } .elsewhen(m1_t_cycle === 3.U) {
+//          mem_refer_addr := PC_next
+          opcode_index := 1.U
+          machine_state_next := M2_state
+    mem_refer_addr := PC_next
+        } .otherwise {
+//          mem_refer_addr := PC_next
+        }
+        /*
+          is(2.U) {
+            PC_next := PC_next + 1.U
+          }
+          is(3.U) {
+          }
+
+        }*/
+//    mem_refer_addr := PC_next
+//         mem_refer_addr := PC_next + 1.U
+//        io.bus.addr := PC_next
       }
       is (M2_state) {
+//        mem_refer_addr := PC_next
+//        mem_refer_addr := PC_next
+//    mem_refer_addr := PC_next
         machine_state_next := M1_state
         opcode_index := 0.U
         regfiles_front(opcodes(0)(5,3)) := opcodes(1)
+        PC_next := PC_next + 1.U
       }
     }
-    PC_next := PC_next + 1.U
+//    mem_refer_addr := PC_next
   }
 
   def add_a_r(opcode:UInt) {
@@ -176,6 +205,7 @@ class Core extends Module {
 
     switch(machine_state) {
       is(M1_state) {
+        when(m1_t_cycle===3.U) {
         switch(opcode(7,4)) {
           is(0x08.U) {
             // add or adc
@@ -203,19 +233,22 @@ class Core extends Module {
           }
         }
         PC_next := PC_next + 1.U
+        regfiles_front(A_op) := alu.io.output_C
+        F := alu.io.flag
+        }
       }
     }
-    regfiles_front(A_op) := alu.io.output_C
-    F := alu.io.flag
-  }
+ }
 
   def ld_mem_r(opcode:UInt) {
     switch (machine_state) {
       is (M1_state) {
-        machine_state_next := M3_state
-        opcode_index := 1.U
-        mem_refer_addr := Cat(H, L)
-        PC_next := PC_next + 1.U
+        when(m1_t_cycle===3.U) {
+          machine_state_next := M3_state
+          opcode_index := 1.U
+          mem_refer_addr := Cat(H, L)
+          PC_next := PC_next + 1.U
+        }
       }
       is (M3_state) {
         io.bus.data1 := regfiles_front(opcodes(0)(2,0)) 
@@ -273,7 +306,7 @@ def halt(opcode:UInt) {
     when (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_n(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_a_n(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11000011")) {printf("JP nn"); jp(opcodes(0));}
     /*
@@ -333,6 +366,7 @@ def halt(opcode:UInt) {
           }
           opcodes(opcode_index) := io.bus.data //io.dd.byte
         } .elsewhen(m1_t_cycle === 2.U) {
+          io.bus.addr := PC_next
           io.bus.MREQ_ := 0.B
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
@@ -348,6 +382,7 @@ def halt(opcode:UInt) {
             io.bus.MREQ_ := 0.B
           }
           PC := PC_next
+          decode()
         } .elsewhen(m1_t_cycle === 4.U) {
           // refresh cycle2
           io.bus.addr := Cat(I, R&0x7F.U)
@@ -369,6 +404,7 @@ def halt(opcode:UInt) {
   
         io.bus.RD_ := 1.B
         when(m1_t_cycle === 1.U) {
+//        io.bus.addr := mem_refer_addr
           // read_memory
   //        io.bus.addr := PC
           io.bus.MREQ_ := 1.B
