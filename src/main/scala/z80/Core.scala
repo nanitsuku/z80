@@ -61,6 +61,12 @@ class Core extends Module {
 
   // register
   val F = RegInit(0xFF.U(8.W))
+  val S_flag = WireDefault(F(7))
+  val Z_flag = WireDefault(F(6))
+  val H_flag = WireDefault(F(4))
+  val PV_flag = WireDefault(F(2))
+  val N_flag = WireDefault(F(1))
+  val C_flag = WireDefault(F(0))
 
   val R = RegInit(40.U(8.W))
   val I = RegInit(0.U(8.W))
@@ -165,10 +171,42 @@ class Core extends Module {
   def add_a_r(opcode:UInt) {
     alu.io.input_A := regfiles_front(A_op)
     alu.io.input_B := regfiles_front(opcodes(0)(2,0))
-    alu.io.calc_type := alu.add_op
+    alu.io.input_carry := C_flag
+    alu.io.calc_type := opcode & "b11111000".U(8.W)
+
+    switch(machine_state) {
+      is(M1_state) {
+        switch(opcode(7,4)) {
+          is(0x08.U) {
+            // add or adc
+            when(opcode(2,0) === 0x06.U) {
+              // add/adc  a,(HL) 
+            }
+          }
+          is(0x09.U) {
+            // sub or sbc
+            when(opcode(2,0) === 0x06.U) {
+            // sub/sbc a,(HL)
+            }
+         }
+          is(0x0A.U) {
+            // and or xor
+            when(opcode(2,0) === 0x06.U) {
+              // and/xor a,(HL)
+            }
+          }
+          is(0x0B.U) {
+            // or or cp
+            when(opcode(2,0) === 0x06.U) {
+              // or/cp a,(HL)
+            }
+          }
+        }
+        PC_next := PC_next + 1.U
+      }
+    }
     regfiles_front(A_op) := alu.io.output_C
     F := alu.io.flag
-    PC_next := PC_next + 1.U
   }
 
   def ld_mem_r(opcode:UInt) {
@@ -236,7 +274,7 @@ def halt(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_n(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b10000???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11000011")) {printf("JP nn"); jp(opcodes(0));}
     /*
     .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
@@ -262,6 +300,7 @@ def halt(opcode:UInt) {
   alu.io.input_A := 0.U
   alu.io.input_B := 0.U
   alu.io.calc_type := 0.U
+  alu.io.input_carry := 0.B
 
   val m1_t_cycle = RegInit(1.U(8.W))
 
