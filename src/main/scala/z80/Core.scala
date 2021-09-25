@@ -311,20 +311,19 @@ def halt(opcode:UInt) {
   when(!reset_hold) {
 
     switch(machine_state) {
+
+      // M1 State
       is(M1_state)  {
-    //  when(machine_state === M1_state) {
         when(m1_t_cycle < 4.U) {
           m1_t_cycle := m1_t_cycle + 1.U
         } otherwise {
           m1_t_cycle := 1.U
-          R := (R + 1.U)&0x7F.U
+          R := Cat(R(7), (R(6,0) + 1.U)&0x7F.U)  // for refresh register
         }
-
-        io.bus.addr := PC_next
 
         when(m1_t_cycle === 1.U) {
           // fetch
-  //        io.bus.addr := PC
+          io.bus.addr := PC_next
           io.bus.MREQ_ := 1.B
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
@@ -333,46 +332,35 @@ def halt(opcode:UInt) {
             io.bus.RD_ := 0.B
           }
           opcodes(opcode_index) := io.bus.data //io.dd.byte
- //          decode(io.dd.byte)
         } .elsewhen(m1_t_cycle === 2.U) {
+          io.bus.MREQ_ := 0.B
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
-          io.bus.MREQ_ := 0.B
           io.bus.RD_ := 0.B
-//          opcode_index := 0.U
-//          opcodes(opcode_index) := io.dd.byte
-         decode()
-       } .elsewhen(m1_t_cycle === 3.U) {
-          io.bus.MREQ_ := 1.B
+          decode()
+        } .elsewhen(m1_t_cycle === 3.U) {
+          // refresh cycle1
           io.bus.addr := Cat(I, R&0x7F.U)
+          io.bus.MREQ_ := 1.B
           io.bus.M1_ := 1.B
           io.bus.RFSH_ := 0.B
-//          decode(io.dd.byte)
           when(fallingedge(clock.asBool)) {
             io.bus.MREQ_ := 0.B
           }
           PC := PC_next
-        } otherwise {
-          io.bus.MREQ_ := 0.B
+        } .elsewhen(m1_t_cycle === 4.U) {
+          // refresh cycle2
           io.bus.addr := Cat(I, R&0x7F.U)
+          io.bus.MREQ_ := 0.B
           io.bus.M1_ := 1.B
           io.bus.RFSH_ := 0.B
           when(fallingedge(clock.asBool)) {
             io.bus.MREQ_ := 1.B
           }
-          when(m1_t_cycle === 3.U) {
-          } otherwise {
-          }
           machine_state := machine_state_next
-          /*
-          when(m1_t_cycle === 1.U) {
-            io.bus.addr := PC
-            decode(io.dd.byte)
-          } otherwise {
-          }
-          */
         }
       }
+      // M2 state
       is(M2_state) {
         io.bus.addr := mem_refer_addr
         when(m1_t_cycle < 3.U) {
@@ -383,26 +371,25 @@ def halt(opcode:UInt) {
         when(m1_t_cycle === 1.U) {
           // read_memory
   //        io.bus.addr := PC
-         io.bus.MREQ_ := 1.B
+          io.bus.MREQ_ := 1.B
           when(fallingedge(clock.asBool)) {
             io.bus.MREQ_ := 0.B
             io.bus.RD_ := 0.U
           }
-        opcodes(opcode_index) := io.bus.data
+          opcodes(opcode_index) := io.bus.data
 //          opcode_index := opcode_index + 1.U
-         } .elsewhen(m1_t_cycle === 2.U) {
+        } .elsewhen(m1_t_cycle === 2.U) {
           io.bus.RD_ := 0.U
           io.bus.MREQ_ := 0.B
-//          decode(/*opcode_index*/)
-          decode(/*opcode_index*/)
+          decode()
         } .elsewhen(m1_t_cycle === 3.U) {
           io.bus.MREQ_ := 0.B
           io.bus.RD_ := 0.U
-          /*
+
           when(fallingedge(clock.asBool)) {
-            io.bus.MREQ_ := 0.B
+            io.bus.RD_ := 1.U
+            io.bus.MREQ_ := 1.B
           }
-          */
           PC := PC_next
           m1_t_cycle := 1.U
           machine_state := machine_state_next
