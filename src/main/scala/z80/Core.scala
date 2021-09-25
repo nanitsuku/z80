@@ -2,8 +2,8 @@ package z80
 
 import chisel3._
 import chisel3.util._
-//import common.Consts._
 
+/*
 class Decoder extends Module {
   val io = IO(new Bundle {
     val dd = new DecoderIo()
@@ -23,6 +23,7 @@ class AFIO extends Bundle {
   val A = Input(UInt(8.W))
   val F = Input(UInt(8.W))
 }
+*/
 
 class Core extends Module {
   val io = IO(new Bundle {
@@ -252,13 +253,19 @@ def halt(opcode:UInt) {
   PC_next := PC_next
 }
 
+def nop(opcode:UInt) {
+  machine_state_next := M1_state
+  opcode_index := 0.U
+}
+
   val opcodes = Mem(4, UInt(8.W))
   val opcode_index = RegInit(0.U(8.W))
 
   var to_be_read = RegInit(0.U(8.W))
   def decode (/*instruction:UInt*/) = {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
-    when (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
+    when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_a_n(opcodes(0)); }
