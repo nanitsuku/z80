@@ -88,14 +88,14 @@ class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
     }
 }
 
-object HogeDriver extends App {
+object TopGenerate extends App {
 //    chisel3.Driver.execute(args, () => new Top)
     (new chisel3.stage.ChiselStage).emitVerilog(
         new Top
     )
 }
 
-class hogehoge(c: ALU) extends PeekPokeTester(c) {
+class ALUTester(c: ALU) extends PeekPokeTester(c) {
     private val alu = c
     for( i<- 0x00 to 0xFF by 1) {
 //        printf(p"pc_reg : 0x${Hexadecimal(c.io.output_C)}\n")
@@ -109,7 +109,7 @@ class hogehoge(c: ALU) extends PeekPokeTester(c) {
     }
 }
 
-object AAAA extends App {
+object ALUTest extends App {
     iotesters.Driver.execute(args, () => new ALU()) {
         /*
         c => new PeekPokeTester(c) {
@@ -118,7 +118,7 @@ object AAAA extends App {
             println(s"hoge")
         }
         */
-        c => new hogehoge(c)
+        c => new ALUTester(c)
     }
 
 }
