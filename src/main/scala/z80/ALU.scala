@@ -9,32 +9,36 @@ class ALU extends Module {
   val io = IO(new Bundle {
     val input_A = Input(UInt(8.W))
     val input_B = Input(UInt(8.W))
+    val input_carry = Input(UInt(1.W))
     val calc_type = Input(UInt(8.W))
     val output_C = Output(UInt(8.W))
     val flag = Output(UInt(8.W))
   })
 
-  val add_op = 0.U
-  val sub_op = 1.U
-  val rl_op = 2.U
+  val parity2_tbl = VecInit(Seq(0.U,1.U,1.U,0.U))
+  def getParity(temp:UInt):UInt = 
+    parity2_tbl(Cat(
+      parity2_tbl(Cat(parity2_tbl(temp(7,6)), parity2_tbl(temp(5,4)))),
+      parity2_tbl(Cat(parity2_tbl(temp(3,2)), parity2_tbl(temp(1,0))))
+    ))
 
+  val add_op = 0x80.U
+  val adc_op = 0x88.U
+  val add_adc_op = 0x08.U
+  val sub_op = 0x90.U
+  val sbc_op = 0x98.U
+  val sub_sbc_op = 0x09.U
+  val and_op = 0xA0.U
+  val xor_op = 0xA8.U
+  val and_xor_op = 0x0A.U
+  val or_op = 0xB0.U
+  val cp_op = 0xB8.U
+  val or_cp_op = 0x0B.U
 
-//  io.output_C := RegInit(0.U(8.W))
-//  val io.output_C = Wire(UInt(16.W))
   io.output_C := 0.U
 
   io.flag := RegInit(0.U(8.W))
 
-//  var temp = RegInit(0.U(16.W))
-//  var temph = RegInit(0.U(16.W))
-
-/*
-  var S = RegInit(0.B)
-  var Z = RegInit(0.B)
-  var H = RegInit(0.B)
-  var PV = RegInit(0.B)
-  var X = RegInit(0.B)
-*/
   var S = WireDefault(1.B)
   var Z = WireDefault(1.B)
   var H = WireDefault(1.B)
@@ -42,74 +46,68 @@ class ALU extends Module {
   var X = WireDefault(1.B)
   var N = WireDefault(1.B)
   var C = WireDefault(1.B)
-//  var N = RegInit(0.B)
-//:  var C = RegInit(0.B)
 
-//  io.output_C := UInt(0)
-//  io.flag := UInt(0)
-/*
-  val added = Wire(UInt(16.W))
-  added := io.input_A + io.input_B
-
-  val added_s = Wire(SInt(16.W))
-  added_s := 0.S(16.W) + io.input_A.asSInt + io.input_B.asSInt
-*/
   val temp = WireDefault(0.U(16.W))
   val temps = WireDefault(0.S(16.W))
-//  temp := 0.U(8.W)
 
   val temph = WireDefault(0.U(8.W))
-//  temph := 0.U(8.W)
-/*
-  val N = Wire(Bool())
-  N := 0.B
 
-  val C = Wire(Bool())
-  C := 0.B
-*/
-  switch(io.calc_type) {
-    is(add_op)  {
-        temp := Cat(0.U(1.W), io.input_A) + Cat(0.U(1.W), io.input_B)
-        temph := 0.U(16.W) + io.input_A(3,0) + io.input_B(3,0)
-        PV :=(io.input_A(7) | io.input_B(7))^temp(7)
+  val parity = WireDefault(0.U(8.W))
+
+  
+  switch(io.calc_type(7,4)) {
+    is(add_adc_op)  {
+        temp := Cat(0.U(1.W), io.input_A) + Cat(0.U(1.W), io.input_B) + (io.calc_type(3) & io.input_carry)
+        temph := 0.U(16.W) + io.input_A(3,0) + io.input_B(3,0) + (io.calc_type(3) & io.input_carry)
+        H := temph(4)
+        PV := ~(io.input_A(7) ^ io.input_B(7)) & (io.input_A(7) ^ temp(7))
         N := 0.B
+        C := temp(8)
+        io.output_C := temp
     }
-   is(sub_op) {
-      temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B)
-      temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0)
-      PV :=(io.input_A(7) | io.input_B(7))^temp(7)
+    is(sub_sbc_op) {
+      temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B) - (io.calc_type(3) & io.input_carry)
+      temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0) - (io.calc_type(3) & io.input_carry)
+      H := temph(4)
+      PV := (io.input_A(7) ^ io.input_B(7)) & (io.input_A(7) ^ temp(7))
       N := 1.B
+      C := temp(8)
+      io.output_C := temp
     }
-    is(rl_op) {
-
+    is(and_xor_op) {
+      temp := Mux(io.calc_type(3), io.input_A ^ io.input_B , io.input_A & io.input_B) 
+      H := 1.U
+      PV := getParity(temp)
+      N := 0.U
+      C := 0.U
+      io.output_C := temp
+    }
+    is(or_cp_op) {
+      switch(io.calc_type) {
+        is(or_op) {
+          temp := io.input_A | io.input_B
+          H := 1.U
+          PV := getParity(temp)
+          N := 0.U
+          C := 0.U
+          io.output_C := temp
+        }
+        is(cp_op) {
+          temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B)
+          temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0)
+          H := temph(4)
+          PV :=(io.input_A(7) | io.input_B(7))^temp(7)
+          N := 1.B
+          C := temp(8)
+          io.output_C := io.input_A  // no change
+        }
+      }  
     }
   }
 
   S := temp(7)
-  Z := ( temp(7,0) === 0.U(8.W))
-  H := temph(4)
-//  PV := temp(8)
-  C := temp(8)
+  Z := (temp(7,0) === 0.U(8.W))
 
-  io.output_C := temp
   io.flag := Cat(S, Z, X, H, X, PV, N, C)
-/*
-  when (io.calc_type === BitPat("b00000000")) {
-    temp = 0.U(16.W) + io.input_A + io.input_B
-    temph = 0.U(16.W) + io.input_A(3,0) + io.input_B(3,0)
-    io.output_C := temp.asUInt
-//    io.output_C := io.input_A + io.input_B
-    S := temp(7)
-    Z := ( temp === 0.U(16.W))
-    H := temph(4)
-    PV := temp(8)
-    N := 1.B
-    C := temp(8)
-
-    io.flag := Cat(S, Z, X, H, X, PV, N, C)
-  }.otherwise {
-    io.output_C := io.calc_type
-   }
-   */
 }
 
