@@ -50,13 +50,18 @@ class Core extends Module {
   val I = RegInit(0.U(8.W))
 
   val alu = Module(new ALU())
+  val alu16 = Module(new ALU16())
+
+  alu16.io.input_register := 0.U
+  alu16.io.offset := 0.S
 
   val PC_next = RegInit(0.U(16.W))
   val in_refresh = RegInit(0.B)
 
-  val M1_state = 1.U(2.W)
-  val M2_state = 2.U(2.W)
-  val M3_state = 3.U(2.W)
+  val M1_state = 1.U(3.W)
+  val M2_state = 2.U(3.W)
+  val M3_state = 3.U(3.W)
+  val MX_state_8 = 4.U(3.W)
 
   val machine_state = RegInit(M1_state)
   val machine_state_next = RegInit(M1_state)
@@ -101,6 +106,60 @@ class Core extends Module {
   val IX = RegInit(0.U(16.W))
   val IY = RegInit(0.U(16.W))
   val SP = RegInit(0xFFFF.U(16.W))
+
+  def ld_r_ix_iy_d(instruction:UInt) {
+    // M1 -> M1 -> M2 -> MX(5) -> M2
+    switch(machine_state) {
+      is(M1_state) {
+        switch(m1_t_cycle) {
+          is(2.U) {
+            opcode_index := opcode_index + 1.U
+          }
+          is(3.U) {
+            when(opcode_index===1.U) {
+              machine_state_next := M1_state
+            } .otherwise {
+              machine_state_next := M2_state
+              mem_refer_addr := PC_next
+            }
+          }
+        }
+      }
+      is(M2_state) {
+        switch(opcode_index) {
+          is(2.U) {
+            mem_refer_addr := PC_next
+            when(m1_t_cycle===2.U) {
+                machine_state_next := MX_state_8 
+                dummy_cycle := 5.U
+                PC_next := PC_next + 1.U
+                opcode_index := opcode_index + 1.U
+            }
+          }
+          is(3.U) {
+            alu16.io.input_register := IX
+            alu16.io.offset := opcodes(2).asSInt()
+            mem_refer_addr := alu16.io.output
+            when(m1_t_cycle===2.U) {
+              opcode_index := 0.U
+              machine_state_next := M1_state
+              regfiles_front(A_op) := io.bus.data
+            } 
+          }
+        }
+      }
+      is(MX_state_8) {
+        when(m1_t_cycle===3.U) {
+          machine_state_next := M2_state
+        }
+        when(m1_t_cycle===4.U) {
+          alu16.io.input_register := IX
+          alu16.io.offset := opcodes(2).asSInt()
+          mem_refer_addr := alu16.io.output
+         }
+      }
+    }
+  }
 
   def ld_r1_r2_hl(instruction:UInt) {
     val op = Wire(UInt(2.W))
@@ -271,6 +330,7 @@ def nop(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_a_n(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11000011")) {printf("JP nn"); jp(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11011101")) {printf("DD"); ld_r_ix_iy_d(opcodes(0));}
     /*
     .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {printf("EX AF,AF'\n"); 0}
@@ -301,6 +361,8 @@ def nop(opcode:UInt) {
 
   def fallingedge(x: Bool) = !x && RegNext(x)
   def risingedge(x: Bool) = x && !RegNext(x)
+
+  val dummy_cycle = RegInit(0.U)
 
   when(!reset_hold) {
 
@@ -420,6 +482,20 @@ def nop(opcode:UInt) {
           machine_state := machine_state_next
         }
       }
+      is(MX_state_8) {
+        when(m1_t_cycle < dummy_cycle) {
+          m1_t_cycle := m1_t_cycle + 1.U
+        } .otherwise {
+          m1_t_cycle := 1.U
+          machine_state := machine_state_next
+        }
+        decode()
+        /*
+        when(m1_t_cycle===8.U) {
+          m1_t_cycle := 1.U
+//          io.bus.
+        }*/
+      }
     }
   } 
 
@@ -432,7 +508,7 @@ def nop(opcode:UInt) {
   //**********************************
   // Debug
 //  io.exit := (data === 0x34.U(8.W))
-  io.exit := (data.asUInt === BitPat("b11111111"))
+  io.exit := (data.asUInt === BitPat("b11111111")) //&& (m1_t_cycle === 4.U)
   printf("--------\n")
   printf(p"PC: 0x${Hexadecimal(PC)}\n")
   printf(p"opcode: 0x${Hexadecimal(opcodes(0))}\n")

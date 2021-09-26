@@ -4,6 +4,19 @@ import chisel3._
 import chisel3.util._
 //import common.Consts._
 
+class ALU16 extends Module {
+  val io = IO(new Bundle {
+    val input_register = Input(UInt(16.W))
+    val offset = Input(SInt(8.W))
+    val output = Output(UInt(16.W))
+  })
+
+  io.output := (io.input_register.zext() + io.offset)(15,0)
+
+  println("hoge")
+  println(io.output)
+}
+
 
 class ALU extends Module {
   val io = IO(new Bundle {
