@@ -12,9 +12,10 @@ class ALU16 extends Module {
   })
 
   io.output := (io.input_register.zext() + io.offset)(15,0)
-
+/*
   println("hoge")
   println(io.output)
+  */
 }
 
 

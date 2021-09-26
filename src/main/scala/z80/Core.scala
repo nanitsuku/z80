@@ -107,6 +107,11 @@ class Core extends Module {
   val IY = RegInit(0.U(16.W))
   val SP = RegInit(0xFFFF.U(16.W))
 
+  val BC_op = "b00".U
+  val DE_op = "b01".U
+  val HL_op = "b10".U
+  val SP_op = "b11".U
+
   def ld_r_ix_iy_d(instruction:UInt) {
     // M1 -> M1 -> M2 -> MX(5) -> M2
     switch(machine_state) {
@@ -157,6 +162,72 @@ class Core extends Module {
           alu16.io.offset := opcodes(2).asSInt()
           mem_refer_addr := alu16.io.output
          }
+      }
+    }
+  }
+
+  def inc_dec_16(instruction:UInt) {
+    var register = WireDefault(MuxCase(instruction(5,4), 
+    Array(
+      (instruction(5,4) === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
+      (instruction(5,4) === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
+      (instruction(5,4) === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
+      (instruction(5,4) === SP_op) -> SP
+    )))
+
+    val input = RegInit(register)
+    val output = WireDefault(register)
+    val result = RegInit(0.U(16.W))
+    val oooo = RegInit(0.U(16.W))
+  
+    alu16.io.input_register := input
+    alu16.io.offset := Mux(instruction(3) === 0.U, 1.S, -1.S)
+   switch(machine_state) {
+      is(M1_state) {
+        input := register
+        machine_state_next := MX_state_8
+        alu16.io.input_register := input
+        dummy_cycle := 2.U
+        when(m1_t_cycle===1.U) {
+        } .elsewhen(m1_t_cycle===3.U) {
+        } .otherwise {
+          input := register
+        }
+      }
+      is(MX_state_8) {
+        switch(m1_t_cycle) {
+          is(2.U) {
+/*
+            regfiles_front(B_op) := alu16.io.output(15,8)
+            regfiles_front(C_op) := alu16.io.output(7,0)
+*/
+            switch(instruction(5,4)) {
+              is(BC_op) {
+                regfiles_front(B_op) := alu16.io.output(15,8)
+                regfiles_front(C_op) := alu16.io.output(7,0)
+              }
+              is(DE_op) {
+                regfiles_front(D_op) := alu16.io.output(15,8)
+                regfiles_front(E_op) := alu16.io.output(7,0)
+              }
+              is(HL_op) {
+                regfiles_front(H_op) := alu16.io.output(15,8)
+                regfiles_front(L_op) := alu16.io.output(7,0)
+              }
+              is(SP_op) {
+                SP := alu16.io.output
+              }
+            }
+
+            machine_state_next := M1_state
+            opcode_index := 0.U
+            output := result
+          }
+          is(1.U) {
+            machine_state_next := M1_state
+            opcode_index := 0.U
+          }
+        }
       }
     }
   }
@@ -378,6 +449,7 @@ def nop(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b00???011")) {printf("inc/dec"); inc_dec_16(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???10?")) {printf("inc/dec"); inc_dec(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
