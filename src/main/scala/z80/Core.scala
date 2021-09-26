@@ -161,6 +161,58 @@ class Core extends Module {
     }
   }
 
+  def inc_dec(instruction:UInt) {
+    alu.io.input_B := 1.U
+    alu.io.input_carry := 0.U
+    alu.io.calc_type := Mux(opcodes(0)(0), alu.sub_op, alu.add_op)
+    when(instruction === BitPat("b0011010?")) {  // inc/dec (HL)
+      val temp = RegInit(0.U)
+      // M1(4) -> M2(3) -> MX(1) -> M3(3)   11
+      alu.io.input_A := opcodes(1)
+      switch(machine_state) {
+        is(M1_state) {
+          machine_state_next := M2_state
+          mem_refer_addr := Cat(H ,L)
+          opcode_index := 1.U
+        }
+        is(M2_state) {
+//          alu.io.input_A := opcodes(1)
+          machine_state_next := MX_state_8
+          /*
+          when(m1_t_cycle===2.U) {
+            alu.io.input_A := opcodes(1)
+            machine_state_next := MX_state_8
+          }*/
+          when(m1_t_cycle===2.U) {
+            temp := alu.io.output_C
+          }
+ 
+          dummy_cycle := 1.U
+        }
+        is(MX_state_8) {
+          when(m1_t_cycle === 1.U) {
+            machine_state_next := M3_state
+          }
+        }
+        is(M3_state) {
+          machine_state_next := M1_state
+          when(m1_t_cycle === 2.U) {
+            io.bus.data1 := temp
+            mem_refer_addr := PC_next
+            opcode_index := 0.U
+          }
+        }
+      }
+    } .elsewhen(instruction === BitPat("b00???10?")) { // inc/dec r/r-1
+      alu.io.input_A := regfiles_front(opcodes(0)(5,3))
+      // M1(4)
+      when(m1_t_cycle===3.U) {
+        regfiles_front(opcodes(0)(5,3)) := alu.io.output_C
+      }
+    }
+
+  }
+
   def ld_r1_r2_hl(instruction:UInt) {
     val op = Wire(UInt(2.W))
     op := instruction(7,6)
@@ -182,12 +234,14 @@ class Core extends Module {
         when(m1_t_cycle===3.U) {
 //          PC_next := PC_next + 1.U
         }
-        regfiles_front(dst_reg) := regfiles_front(src_reg)
+       // regfiles_front(dst_reg) := regfiles_front(src_reg)
       }
       is(M2_state) {
-        regfiles_front(dst_reg) := io.bus.data
-        machine_state_next := M1_state
-        opcode_index := 0.U
+        when(m1_t_cycle===2.U) {
+          regfiles_front(dst_reg) := io.bus.data
+          machine_state_next := M1_state
+          opcode_index := 0.U
+        }
       }
     }
   }
@@ -324,6 +378,7 @@ def nop(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b00???10?")) {printf("inc/dec"); inc_dec(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
@@ -331,7 +386,7 @@ def nop(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11000011")) {printf("JP nn"); jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011101")) {printf("DD"); ld_r_ix_iy_d(opcodes(0));}
-    /*
+   /*
     .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {printf("EX AF,AF'\n"); 0}
     .elsewhen (opcodes(0) === BitPat("b000?1010")) {printf("LD A,(BC) or LD A,(DE)\n"); 0}
