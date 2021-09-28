@@ -29,7 +29,7 @@ class ALU extends Module {
     val flag = Output(UInt(8.W))
   })
 
-  val parity2_tbl = VecInit(Seq(0.U,1.U,1.U,0.U))
+  val parity2_tbl = VecInit(Seq(1.U,0.U,0.U,1.U))
   def getParity(temp:UInt):UInt = 
     parity2_tbl(Cat(
       parity2_tbl(Cat(parity2_tbl(temp(7,6)), parity2_tbl(temp(5,4)))),
