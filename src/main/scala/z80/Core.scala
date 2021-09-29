@@ -66,6 +66,8 @@ class Core extends Module {
   val machine_state = RegInit(M1_state)
   val machine_state_next = RegInit(M1_state)
 
+  val IFF = RegInit(0.B)
+
   val mem_refer_addr = RegInit(0.U(16.W))
 //  val mem_refer_addr = Wirefault(0.U(16.W))
 //  val mem_refer_addr = WireDefault(PC_next)
@@ -471,6 +473,10 @@ def nop(opcode:UInt) {
   opcode_index := 0.U
 }
 
+def iff(opcode:UInt) {
+  IFF := opcodes(0)(3)
+}
+
 def call_ret(opcode:UInt) {
   /* call  17  M1(4) M2(3) M2(3) MX M3(3) M3(3) */
 //  val sub_state = 0.U
@@ -583,6 +589,7 @@ def call_ret(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b1111?011")) {printf("DI/EI\n"); iff(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {printf("CALL RET\n"); call_ret(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???011")) {printf("inc/dec16\n"); inc_dec_16(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???10?")) {printf("inc/dec\n"); inc_dec(opcodes(0));}
@@ -776,6 +783,7 @@ def call_ret(opcode:UInt) {
   printf(p"opcode: 0x${Hexadecimal(opcodes(0))}\n")
 //  printf(p"m1: 0x${Hexadecimal(io.dd.m1)}\n")
   printf(p"m1: 0x${Hexadecimal(m1_t_cycle)}\n")
+  printf(p"iff: 0x${Hexadecimal(IFF)}\n")
 //  printf(p"A: 0x${Hexadecimal(A)}\n")
 //  printf(p"B: 0x${Hexadecimal(B)}\n")
 //  printf(p"F: 0x${Hexadecimal(F)}\n")
