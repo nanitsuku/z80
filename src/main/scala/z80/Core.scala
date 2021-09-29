@@ -477,7 +477,68 @@ def iff(opcode:UInt) {
   IFF := opcodes(0)(3)
 }
 
-def call_ret(opcode:UInt) {
+def ret(opcode:UInt) {
+  // RET M1(4) M2(3) M2(3) 
+  // RET no cond  M1(4) MX(1)
+  // RET cond M1(4) MX(1) M2(3) M2(3) 
+
+  val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
+  val cond = MuxCase(0.B,
+    Array(
+      (op === "b1001".U) -> 1.B,
+      (op === "b0000".U && Z_flag === 0.U) -> 1.B,
+      (op === "b0001".U && Z_flag === 1.U) -> 1.B,
+      (op === "b0010".U && C_flag === 0.U) -> 1.B,
+      (op === "b0011".U && C_flag === 1.U) -> 1.B,
+      (op === "b0100".U && PV_flag=== 0.U) -> 1.B,
+      (op === "b0101".U && PV_flag=== 1.U) -> 1.B,
+      (op === "b0110".U && S_flag === 0.U) -> 1.B,
+      (op === "b0111".U && S_flag === 1.U) -> 1.B,
+    )
+  )
+
+  switch(machine_state) {
+    is(M1_state) {
+      switch(m1_t_cycle) {
+        is(2.U) {
+          when(op==="b1001".U) {
+            machine_state_next := M2_state 
+          } otherwise {
+            machine_state_next := MX_state_8
+          }
+          dummy_cycle := 1.U
+          mem_refer_addr := SP
+          opcode_index := opcode_index + 1.U
+        }
+      }
+    }
+    is(MX_state_8) {
+      when(cond===1.U) {
+        machine_state_next := M2_state
+      } otherwise {
+        machine_state_next := M1_state
+        opcode_index := 0.U
+      }
+    }
+     is(M2_state) {
+      switch(m1_t_cycle) {
+        is(2.U) {
+//          opcodes(opcode_index) := io.bus.data
+          SP := SP + 1.U
+          opcode_index := opcode_index + 1.U
+          mem_refer_addr := SP + 1.U
+          when(opcode_index===2.U) {
+            PC_next := Cat(opcodes(1), io.bus.data)
+            opcode_index := 0.U
+            machine_state_next := M1_state
+          }
+        }
+      }
+    }
+  }
+}
+
+def call(opcode:UInt) {
   /* call  17  M1(4) M2(3) M2(3) MX M3(3) M3(3) */
 //  val sub_state = 0.U
   printf(p"machine_state ${machine_state}\n")
@@ -561,7 +622,7 @@ def call_ret(opcode:UInt) {
         switch(opcode_index) {
           is(3.U) {
       alu16.io.input_register := SP
-      alu16.io.offset := -1.S
+      alu16.io.offset := -0.S
              mem_refer_addr := alu16.io.output
             opcode_index := opcode_index + 1.U
 
@@ -570,8 +631,9 @@ def call_ret(opcode:UInt) {
           is(4.U) {
       alu16.io.input_register := SP
 //      alu16.io.offset := -1.S
-             alu16.io.offset := -2.S
+             alu16.io.offset := -1.S
             machine_state_next := M1_state
+            opcode_index := 0.U
            io.bus.data1 := PC(7,0)
             SP := alu16.io.output
             PC_next := Cat(opcodes(2),opcodes(1))
@@ -590,7 +652,8 @@ def call_ret(opcode:UInt) {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b1111?011")) {printf("DI/EI\n"); iff(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {printf("CALL RET\n"); call_ret(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {printf("CALL\n"); call(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11???00?")) {printf("RET\n"); ret(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???011")) {printf("inc/dec16\n"); inc_dec_16(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???10?")) {printf("inc/dec\n"); inc_dec(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
