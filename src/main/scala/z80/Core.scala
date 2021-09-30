@@ -62,9 +62,11 @@ class Core extends Module {
   val M2_state = 2.U(3.W)
   val M3_state = 3.U(3.W)
   val MX_state_8 = 4.U(3.W)
+  val MINOUT_state = 5.U(3.W)
 
   val machine_state = RegInit(M1_state)
   val machine_state_next = RegInit(M1_state)
+
 
   val IFF = RegInit(0.B)
 
@@ -73,6 +75,7 @@ class Core extends Module {
 //  val mem_refer_addr = WireDefault(PC_next)
 
   io.bus.data1 := 0.U
+  io.bus.IORQ_ := 1.B
 
   ///// registers
   // 8bit registers
@@ -328,7 +331,11 @@ class Core extends Module {
         } .elsewhen(m1_t_cycle === 3.U) {
           opcode_index := 1.U
           machine_state_next := M2_state
-          mem_refer_addr := PC_next
+          when(opcodes(0)(6)===0.U) {
+            mem_refer_addr := PC_next
+          } otherwise {
+            mem_refer_addr := Cat(H, L)
+          }
         }
       }
       is (M2_state) {
@@ -381,7 +388,7 @@ class Core extends Module {
         }
       }
     }
- }
+  }
 
   def ld_mem_r(opcode:UInt) {
     switch (machine_state) {
@@ -414,12 +421,12 @@ class Core extends Module {
           mem_refer_addr := PC_next + 1.U
           }
         }
-     }
+      }
       is (M2_state) {
         opcodes(opcode_index) := io.bus.data
 //        mem_refer_addr := PC_next
-          when(m1_t_cycle === 2.U) {
-        mem_refer_addr := PC_next + 1.U
+        when(m1_t_cycle === 2.U) {
+          mem_refer_addr := PC_next + 1.U
           switch(opcode_index) {
             is(1.U) {
               opcode_index := opcode_index + 1.U
@@ -461,82 +468,152 @@ class Core extends Module {
 //    mem_refer_addr := PC_next
   }
 
-def halt(opcode:UInt) {
-  machine_state_next := M1_state
-  opcode_index := 0.U
-  mem_refer_addr := PC
-  PC_next := PC_next
-}
+  def halt(opcode:UInt) {
+    machine_state_next := M1_state
+    opcode_index := 0.U
+    mem_refer_addr := PC
+    PC_next := PC_next
+  }
 
-def nop(opcode:UInt) {
-  machine_state_next := M1_state
-  opcode_index := 0.U
-}
-
-def iff(opcode:UInt) {
-  IFF := opcodes(0)(3)
-}
-
-def ret(opcode:UInt) {
-  // RET M1(4) M2(3) M2(3) 
-  // RET no cond  M1(4) MX(1)
-  // RET cond M1(4) MX(1) M2(3) M2(3) 
-
-  val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
-  val cond = MuxCase(0.B,
-    Array(
-      (op === "b1001".U) -> 1.B,
-      (op === "b0000".U && Z_flag === 0.U) -> 1.B,
-      (op === "b0001".U && Z_flag === 1.U) -> 1.B,
-      (op === "b0010".U && C_flag === 0.U) -> 1.B,
-      (op === "b0011".U && C_flag === 1.U) -> 1.B,
-      (op === "b0100".U && PV_flag=== 0.U) -> 1.B,
-      (op === "b0101".U && PV_flag=== 1.U) -> 1.B,
-      (op === "b0110".U && S_flag === 0.U) -> 1.B,
-      (op === "b0111".U && S_flag === 1.U) -> 1.B,
+  def nop(opcode:UInt) {
+    machine_state_next := M1_state
+    opcode_index := 0.U
+  }
+  
+  def iff(opcode:UInt) {
+    IFF := opcodes(0)(3)
+  }
+  
+  def ret(opcode:UInt) {
+    // RET M1(4) M2(3) M2(3) 
+    // RET no cond  M1(4) MX(1)
+    // RET cond M1(4) MX(1) M2(3) M2(3) 
+  
+    val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
+    val cond = MuxCase(0.B,
+      Array(
+        (op === "b1001".U) -> 1.B,
+        (op === "b0000".U && Z_flag === 0.U) -> 1.B,
+        (op === "b0001".U && Z_flag === 1.U) -> 1.B,
+        (op === "b0010".U && C_flag === 0.U) -> 1.B,
+        (op === "b0011".U && C_flag === 1.U) -> 1.B,
+        (op === "b0100".U && PV_flag=== 0.U) -> 1.B,
+        (op === "b0101".U && PV_flag=== 1.U) -> 1.B,
+        (op === "b0110".U && S_flag === 0.U) -> 1.B,
+        (op === "b0111".U && S_flag === 1.U) -> 1.B,
+      )
     )
-  )
-
-  switch(machine_state) {
-    is(M1_state) {
-      switch(m1_t_cycle) {
-        is(2.U) {
-          when(op==="b1001".U) {
-            machine_state_next := M2_state 
-          } otherwise {
-            machine_state_next := MX_state_8
+  
+    switch(machine_state) {
+      is(M1_state) {
+        switch(m1_t_cycle) {
+          is(2.U) {
+            when(op==="b1001".U) {
+              machine_state_next := M2_state 
+            } otherwise {
+              machine_state_next := MX_state_8
+            }
+            dummy_cycle := 1.U
+            mem_refer_addr := SP
+            opcode_index := opcode_index + 1.U
           }
-          dummy_cycle := 1.U
-          mem_refer_addr := SP
-          opcode_index := opcode_index + 1.U
         }
       }
-    }
-    is(MX_state_8) {
-      when(cond===1.U) {
-        machine_state_next := M2_state
-      } otherwise {
-        machine_state_next := M1_state
-        opcode_index := 0.U
+      is(MX_state_8) {
+        when(cond===1.U) {
+          machine_state_next := M2_state
+        } otherwise {
+          machine_state_next := M1_state
+          opcode_index := 0.U
+        }
       }
-    }
-     is(M2_state) {
-      switch(m1_t_cycle) {
-        is(2.U) {
-//          opcodes(opcode_index) := io.bus.data
-          SP := SP + 1.U
-          opcode_index := opcode_index + 1.U
-          mem_refer_addr := SP + 1.U
-          when(opcode_index===2.U) {
-            PC_next := Cat(opcodes(1), io.bus.data)
-            opcode_index := 0.U
-            machine_state_next := M1_state
+       is(M2_state) {
+        switch(m1_t_cycle) {
+          is(2.U) {
+  //          opcodes(opcode_index) := io.bus.data
+            SP := SP + 1.U
+            opcode_index := opcode_index + 1.U
+            mem_refer_addr := SP + 1.U
+            when(opcode_index===2.U) {
+              PC_next := Cat(opcodes(1), io.bus.data)
+              opcode_index := 0.U
+              machine_state_next := M1_state
+            }
           }
         }
       }
     }
   }
-}
+  
+  def in_out(opcode:UInt) {
+    switch(machine_state) {
+      is(M1_state) {
+        when(m1_t_cycle===2.U) {
+          machine_state_next := M2_state;
+          mem_refer_addr := PC_next + 1.U
+          opcode_index := opcode_index + 1.U
+        }
+      }
+      is(M2_state) {
+        when(m1_t_cycle===2.U) {
+          machine_state_next := MINOUT_state
+          mem_refer_addr := Cat(A, opcodes(1))
+          PC_next := PC_next + 1.U
+        }
+      }
+      is(MINOUT_state) {
+        io.bus.addr := mem_refer_addr
+        switch(m1_t_cycle) {
+          is(1.U) {
+            /*
+            when(opcodes(0)(3)===0.U) {
+              io.bus.data1 := A
+            }
+            */
+            when(fallingedge(clock.asBool())) {
+              when(opcodes(0)(3)===0.U) {
+                io.bus.data1 := A
+              }
+            }
+          }
+          is(2.U) {
+            when(opcodes(0)(3)===0.U) {
+              io.bus.data1 := A
+            }
+            when(fallingedge(clock.asBool())) {
+              io.bus.IORQ_ := 0.U
+              when(opcodes(0)(3)===1.U) { // IN A,(N)
+                io.bus.RD_ := 0.U
+              } otherwise { // OUT A,(N)
+                io.bus.WR_ := 0.U
+              }
+            }
+          }
+          is(3.U) {
+            when(opcodes(0)(3)===0.U) {
+              io.bus.data1 := A
+            }
+            machine_state_next := M1_state
+          }
+          is(4.U) {
+            when(opcodes(0)(3)===0.U) {
+              io.bus.data1 := A
+            }
+             when(fallingedge(clock.asBool())) {
+              io.bus.IORQ_ := 1.U
+              when(opcodes(0)(3)===1.U) { // IN A,(N)
+                io.bus.RD_ := 1.U
+              } otherwise { // OUT A,(N)
+                io.bus.WR_ := 1.U
+              }
+            }
+            opcode_index := 0.U
+          }
+        }
+      }
+    }
+  
+  }
 
 def call(opcode:UInt) {
   /* call  17  M1(4) M2(3) M2(3) MX M3(3) M3(3) */
@@ -651,6 +728,7 @@ def call(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
     printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b1101?011")) {printf("inout\n"); in_out(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b1111?011")) {printf("DI/EI\n"); iff(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {printf("CALL\n"); call(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???00?")) {printf("RET\n"); ret(opcodes(0));}
@@ -659,7 +737,7 @@ def call(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b00???110")) {printf("LD r,n\n"); ld_a_n(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b0????110")) {printf("LD r,n_(hl)\n"); ld_a_n(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11???010")) {printf("JP nn"); jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011101")) {printf("DD"); ld_r_ix_iy_d(opcodes(0));}
@@ -822,11 +900,16 @@ def call(opcode:UInt) {
           machine_state := machine_state_next
         }
         decode()
-        /*
-        when(m1_t_cycle===8.U) {
+      }
+      is(MINOUT_state) {
+//        machine_state := machine_state_next
+        when(m1_t_cycle < 4.U) {
+          m1_t_cycle := m1_t_cycle + 1.U
+        } .otherwise {
           m1_t_cycle := 1.U
-//          io.bus.
-        }*/
+        machine_state := machine_state_next
+        }
+        decode()
       }
     }
   } 

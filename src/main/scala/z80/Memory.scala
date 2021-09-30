@@ -17,6 +17,7 @@ class ImemPortIo extends Bundle {
   val RD_ = Input(Bool())
   val WR_ = Input(Bool())
   val MREQ_ = Input(Bool())
+  val IORQ_ = Input(Bool())
   val M1_ = Input(Bool())
   val RFSH_ = Input(Bool())
 }
