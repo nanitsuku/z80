@@ -1,0 +1,30 @@
+[
+  {
+    "class":"firrtl.transforms.BlackBoxInlineAnno",
+    "target":"Top.Memory",
+    "name":"Top.Memory.mem.v",
+    "text":"module BindsTo_0_Memory(\n  input         clock,\n  input         reset,\n  input  [15:0] io_imem_addr,\n  output [7:0]  io_imem_data,\n  input  [7:0]  io_imem_data1,\n  input         io_imem_RD_,\n  input         io_imem_WR_,\n  input         io_imem_MREQ_\n);\n\ninitial begin\n  $readmemh(\"src/hex/fetch.hex\", Memory.mem);\nend\n                      endmodule\n\nbind Memory BindsTo_0_Memory BindsTo_0_Memory_Inst(.*);"
+  },
+  {
+    "class":"firrtl.transforms.CombinationalPath",
+    "sink":"~Top|Top>io_exit",
+    "sources":[
+      "~Top|Top>clock"
+    ]
+  },
+  {
+    "class":"firrtl.EmitCircuitAnnotation",
+    "emitter":"firrtl.VerilogEmitter"
+  },
+  {
+    "class":"firrtl.annotations.LoadMemoryAnnotation",
+    "target":"Top.Memory.mem",
+    "fileName":"src/hex/fetch.hex",
+    "hexOrBinary":"h",
+    "originalMemoryNameOpt":"mem"
+  },
+  {
+    "class":"firrtl.transforms.BlackBoxTargetDirAnno",
+    "targetDir":"."
+  }
+]

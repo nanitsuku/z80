@@ -4,6 +4,8 @@ import chisel3._
 import z80._
 import chisel3.iotesters._
 import org.scalatest._
+import chisel3.util.experimental.BoringUtils
+
 //import chiseltest._
 //import chiseltest.experimental.TestOptionBuilder._
 //import chiseltest.internal.VerilatorBackendAnnotation
@@ -321,3 +323,36 @@ class hhh extends FlatSpec with Matchers {
 
 }
 */
+
+class hogetop extends Module {
+ var io= IO(new Bundle {
+  val A = Output(UInt(8.W))
+ })
+
+ val top = Module(new Top)
+
+ val A = WireDefault(0.U(8.W))
+
+ BoringUtils.bore(top.core.A, Seq(io.A))
+
+ io.A := A
+
+}
+
+object TopTest22 extends App {
+//    iotesters.Driver.execute(args, () => new Top()) {
+//    val backend = "firrtl"
+//    val backend = "treadle"
+//    val backend = "ivl"
+//    val backend = "vcs"
+//    val backend = "vsim"
+    val backend = "verilator"
+    iotesters.Driver.execute(Array("--backend-name", backend), () => new hogetop()) {
+        c => new PeekPokeTester(c) {
+          while(true) {
+            println(s"${peek(c.io.A)}\n")
+            step(1)
+          }
+      }
+    }
+}
