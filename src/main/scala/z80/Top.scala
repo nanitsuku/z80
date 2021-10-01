@@ -6,6 +6,8 @@ import chisel3.util._
 class Top extends Module {
   val io = IO(new Bundle {
     val exit = Output(Bool())
+    val registers = new Registers 
+    val M1 = Output(Bool())
   })
   
   val core   = Module(new Core())
@@ -14,4 +16,8 @@ class Top extends Module {
   core.io.bus <> memory.io.imem
 //  core.io.dd <> decoder.io.dd
   io.exit := core.io.exit
+
+  io.registers := core.io.registers
+
+  io.M1 := core.io.M1
 }

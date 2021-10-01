@@ -3,7 +3,10 @@ import chisel3._
 //import chiseltest._
 import z80._
 import chisel3.iotesters._
-
+import org.scalatest._
+//import chiseltest._
+//import chiseltest.experimental.TestOptionBuilder._
+//import chiseltest.internal.VerilatorBackendAnnotation
 
 //package example.lambda
 
@@ -16,6 +19,7 @@ import scalafx.scene.control.Button
 import scalafx.scene.control.TextField
 import scalafx.scene.layout.VBox
 import treadle.executable.Big
+import java.math.MathContext
 
 object ScalaFxHello extends JFXApp  {
   val tf = new TextField()
@@ -83,7 +87,10 @@ class hagehoge(c: ALU) extends PeekPokeTester(c) {
 class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
     while (peek(c.io.exit)==0) {
 //        System.out.printf("%d\n", peekAt(c.core.regfiles_front, 7))
-        System.out.println(peekAt(c.core.regfiles_front, 7))
+//        System.out.println(peekAt(c.core.regfiles_front, 7))
+          println(s"AAAA:${peekAt(c.core.regfiles_front, c.core.A_op.litValue().toInt)}")
+//          println(s"${peek(c.core.A).toInt}")
+//        System.out.println(peek(c.core.A))
 //        println(s"${peek(c.core.regfiles_front(7))}\n")
         step(1)
     }
@@ -254,15 +261,63 @@ object ALUTest extends App {
 }
 
 object TopTest extends App {
-    iotesters.Driver.execute(args, () => new Top()) {
-        /*
+//    iotesters.Driver.execute(args, () => new Top()) {
+//    val backend = "firrtl"
+//    val backend = "treadle"
+//    val backend = "ivl"
+//    val backend = "vcs"
+//    val backend = "vsim"
+    val backend = "verilator"
+    iotesters.Driver.execute(Array("--backend-name", backend), () => new Top()) {
+//    iotesters.Driver.execute(Array("--tr-write-vcd"), () => new Top()) {
+//        /*
         c => new PeekPokeTester(c) {
-            poke(c.io.input_A,99)
-            step(0)
-            println(s"hoge")
+//          chisel3.util.experimental.loadMemoryFromFile(c.memory.mem, "src/hex/fetch.hex")
+//          for(i <- 1 to 10) {
+        var regs = c.io.registers
+        var m1 = 0
+        while(peek(c.io.exit)==0) { 
+//          peekAt(c.core.regfiles_front, 7)
+//            poke(,99)
+//            c.io.exit.peek
+//            peek("c_core_A")
+//peek(c.core.A)
+//peek(c.core.io.bus.addr)
+          if (m1==0 && peek(c.io.M1)==1) {
+          println(s"aaaa:${peek(c.io.registers.PC)}")
+          }
+          m1 = peek(c.io.M1).toInt
+          regs = c.io.registers
+//println(s"m1:${peek(c.io.M1)}")
+//peek("Top.core_io_bus_data")
+//peek("Top_io_exit")
+//peek("Top.io_exit")
+//            println(s"${peek(c.io.
+//              peek(c.core.io.exit)
+//              System.out.println(peekAt(c.core.regfiles_front, 7))
+//            peekAt(c.core.regfiles_front, 7)
+//println(c.io.exit.pathName)
+//            println(s"${peek(c.memory.mem.read(0.U))}")
+            step(1)
+//            println(s"hoge")
+          }
         }
-        */
-        c => new TopTestPeekPokeTester(c)
+//        */
+//        c => new TopTestPeekPokeTester(c)
     }
 
 }
+
+/*
+class hhh extends FlatSpec with Matchers {
+  behavior of "hhh"
+
+  it should "hhh" in {
+    chisel3.iotesters.Driver(() => new Top) {
+      c =>
+        new TopTestPeekPokeTester(c)
+    } should be (true)
+  }
+
+}
+*/

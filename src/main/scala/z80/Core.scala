@@ -25,10 +25,24 @@ class AFIO extends Bundle {
 }
 */
 
+class Registers extends Bundle {
+    val registers_front = Output(Vec(8, UInt(8.W)))
+    val registers_back= Output(Vec(8, UInt(8.W)))
+    val PC = Output(UInt(8.W))
+    val SP = Output(UInt(8.W))
+    val IX = Output(UInt(8.W))
+    val IY = Output(UInt(8.W))
+}
+
 class Core extends Module {
+  val regs = new  Registers
+
   val io = IO(new Bundle {
     val bus = Flipped(new ImemPortIo())
     val exit = Output(Bool())
+//    val registers = Output(Vec(8, UInt(8.W)))
+    val registers = regs
+    val M1 = Output(UInt(8.W))
   })
 
   val reset_hold = RegInit(1.U(1.W))
@@ -69,6 +83,7 @@ class Core extends Module {
 
 
   val IFF = RegInit(0.B)
+
 
   val mem_refer_addr = RegInit(0.U(16.W))
 //  val mem_refer_addr = Wirefault(0.U(16.W))
@@ -117,6 +132,15 @@ class Core extends Module {
   val HL_op = "b10".U
   val SP_op = "b11".U
 
+  for( i <- 0 to 7) {
+    io.registers.registers_front(i):= regfiles_front(i.asUInt())
+    io.registers.registers_back(i):= regfiles_back(i.asUInt())
+  }
+  io.registers.IX := IX
+  io.registers.IY := IY
+  io.registers.PC := PC 
+  io.registers.SP := SP
+ 
   def ld_r_ix_iy_d(instruction:UInt) {
     // M1 -> M1 -> M2 -> MX(5) -> M2
     switch(machine_state) {
@@ -323,7 +347,7 @@ class Core extends Module {
   }
 
   def ld_a_n(instruction:UInt) {
-    printf(p"ld_a_n${instruction}\n")
+//    printf(p"ld_a_n${instruction}\n")
     switch (machine_state) {
       is (M1_state) {
         when(m1_t_cycle === 2.U) {
@@ -618,7 +642,7 @@ class Core extends Module {
 def call(opcode:UInt) {
   /* call  17  M1(4) M2(3) M2(3) MX M3(3) M3(3) */
 //  val sub_state = 0.U
-  printf(p"machine_state ${machine_state}\n")
+//  printf(p"machine_state ${machine_state}\n")
 
   val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
   val cond = MuxCase(0.B,
@@ -640,7 +664,7 @@ def call(opcode:UInt) {
       switch(m1_t_cycle) {
         is(1.U) {
           PC_next := PC_next + 1.U
-          println("\n")
+//          println("\n")
         }
         is(2.U) {
           machine_state_next := M2_state
@@ -726,21 +750,21 @@ def call(opcode:UInt) {
 
   var to_be_read = RegInit(0.U(8.W))
   def decode (/*instruction:UInt*/) = {
-    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
-    when (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); nop(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b1101?011")) {printf("inout\n"); in_out(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b1111?011")) {printf("DI/EI\n"); iff(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {printf("CALL\n"); call(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11???00?")) {printf("RET\n"); ret(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b00???011")) {printf("inc/dec16\n"); inc_dec_16(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b00???10?")) {printf("inc/dec\n"); inc_dec(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b01110110")) {printf("HALT\n"); halt(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b01110???")) {printf("LD (HL),r\n"); ld_mem_r(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b01??????")) {printf("LD r1,r2\n"); ld_r1_r2_hl(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b0????110")) {printf("LD r,n_(hl)\n"); ld_a_n(opcodes(0)); }
-    .elsewhen (opcodes(0) === BitPat("b10??0???")) {printf("ADD A,r\n"); add_a_r(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11???010")) {printf("JP nn"); jp(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11011101")) {printf("DD"); ld_r_ix_iy_d(opcodes(0));}
+//    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
+    when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b1101?011")) {/*printf("inout\n");*/  in_out(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b1111?011")) {/*printf("DI/EI\n");*/  iff(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {/*printf("CALL\n");*/  call(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11???00?")) {/*printf("RET\n");*/  ret(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00???011")) {/*printf("inc/dec16\n");*/  inc_dec_16(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00???10?")) {/*printf("inc/dec\n");*/  inc_dec(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b01110110")) {/*printf("HALT\n");*/  halt(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b01110???")) {/*printf("LD (HL),r\n");*/  ld_mem_r(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b01??????")) {/*printf("LD r1,r2\n");*/  ld_r1_r2_hl(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b0????110")) {/*printf("LD r,n_(hl)\n");*/  ld_a_n(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b10??0???")) {/*printf("ADD A,r\n");*/  add_a_r(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11???010")) {/*printf("JP nn");*/  jp(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11011101")) {/*printf("DD");*/  ld_r_ix_iy_d(opcodes(0));}
    /*
     .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {printf("EX AF,AF'\n"); 0}
@@ -761,6 +785,8 @@ def call(opcode:UInt) {
   val data = io.bus.data
   io.bus.M1_ := 1.B
   io.bus.RFSH_ := 1.B
+
+  io.M1 := io.bus.M1_
 
   alu.io.input_A := 0.U
   alu.io.input_B := 0.U
@@ -924,12 +950,15 @@ def call(opcode:UInt) {
   // Debug
 //  io.exit := (data === 0x34.U(8.W))
   io.exit := (data.asUInt === BitPat("b11111111")) //&& (m1_t_cycle === 4.U)
+  /*
   printf("--------\n")
   printf(p"PC: 0x${Hexadecimal(PC)}\n")
   printf(p"opcode: 0x${Hexadecimal(opcodes(0))}\n")
 //  printf(p"m1: 0x${Hexadecimal(io.dd.m1)}\n")
   printf(p"m1: 0x${Hexadecimal(m1_t_cycle)}\n")
   printf(p"iff: 0x${Hexadecimal(IFF)}\n")
+  printf(p"data: 0x${Hexadecimal(io.bus.data)}\n")
+  printf(p"rd: 0x${Hexadecimal(io.bus.RD_)}\n")
 //  printf(p"A: 0x${Hexadecimal(A)}\n")
 //  printf(p"B: 0x${Hexadecimal(B)}\n")
 //  printf(p"F: 0x${Hexadecimal(F)}\n")
@@ -940,4 +969,5 @@ def call(opcode:UInt) {
 //  printf(p"aa: 0x${Hexadecimal(io.bus.MREQ_)}\n")
 //  printf(p"aa: 0x${Hexadecimal(io.bus.RFSH_)}\n")
 //  printf("---------\n")
+*/
 }

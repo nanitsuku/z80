@@ -50,5 +50,5 @@ class Memory extends Module {
     }
   }
 
-  printf("%d\n", peek)
+//  printf("%d\n", peek)
 }
