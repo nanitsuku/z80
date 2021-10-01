@@ -384,31 +384,54 @@ class Core extends Module {
             is(0x08.U) {
               // add or adc
               when(opcode(2,0) === 0x06.U) {
-                // add/adc  a,(HL) 
+                // add/adc  a,(HL)
+                mem_refer_addr := Cat(H,L)
+                machine_state_next := M2_state
+                opcode_index := opcode_index + 1.U
               }
             }
             is(0x09.U) {
               // sub or sbc
               when(opcode(2,0) === 0x06.U) {
-              // sub/sbc a,(HL)
+                // sub/sbc a,(HL)
+                mem_refer_addr := Cat(H,L)
+                machine_state_next := M2_state
+                alu.io.input_B := io.bus.data
+                opcode_index := opcode_index + 1.U
               }
            }
             is(0x0A.U) {
               // and or xor
               when(opcode(2,0) === 0x06.U) {
                 // and/xor a,(HL)
+                mem_refer_addr := Cat(H,L)
+                machine_state_next := M2_state
+                alu.io.input_B := io.bus.data
+                opcode_index := opcode_index + 1.U
               }
             }
             is(0x0B.U) {
               // or or cp
               when(opcode(2,0) === 0x06.U) {
                 // or/cp a,(HL)
+                mem_refer_addr := Cat(H,L)
+                machine_state_next := M2_state
+                alu.io.input_B := io.bus.data
+                opcode_index := opcode_index + 1.U
               }
             }
           }
 //        PC_next := PC_next + 1.U
           regfiles_front(A_op) := alu.io.output_C
           F := alu.io.flag
+        }
+      }
+      is(M2_state) {
+        when(m1_t_cycle===2.U) {
+          regfiles_front(A_op) := alu.io.output_C
+                alu.io.input_B := io.bus.data
+          opcode_index := 0.U
+          machine_state_next := M1_state 
         }
       }
     }

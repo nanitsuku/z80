@@ -39,6 +39,8 @@ class Memory extends Module {
   val peek = mem(0x1000.U)
   loadMemoryFromFile(mem, "src/hex/fetch.hex")
 
+  mem.write(0x1234.U, 0x55.U)
+
   io.imem.data := 0.U
 
   when(io.imem.MREQ_ === 0.B) {
