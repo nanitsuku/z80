@@ -1026,6 +1026,46 @@ def rst(opcode:UInt) {
   }
 }
 
+def shift_rotate(opcode:UInt) {
+  val temp = Reg(UInt(8.W))
+  val pre_F = Reg(UInt(8.W))
+  var ofs = 0.U
+
+  switch(m1_t_cycle) {
+    is(2.U) {
+      pre_F := regfiles_front(F_op)
+      switch(opcode(4,3)) {
+        is("b00".U) {
+          // RLCA
+          temp := Cat(A(6,0), A(7))
+          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(7))
+        }
+        is("b01".U) {
+          // RRCA
+          temp := Cat(A(0), A(7,1))
+          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(0))
+        }
+        is("b10".U) {
+          // RLA
+          temp := Cat(A(6,0) , C_flag)
+//          C_flag := A(7)
+          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(7))
+        }
+        is("b11".U) {
+          // RRA
+          temp := Cat(C_flag, A(7,1))
+          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(0))
+        }
+      }
+    }
+    is(3.U) {
+      regfiles_front(A_op) := temp
+      machine_state_next := M1_state
+      opcode_index := 0.U
+    }
+  }
+}
+
   val opcodes = Mem(4, UInt(8.W))
   val opcode_index = RegInit(0.U(8.W))
 
@@ -1033,6 +1073,7 @@ def rst(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b000??111")) {/*printf("inout\n");*/  shift_rotate(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11??0?01")) {/*printf("inout\n");*/  push_pop(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???111")) {/*printf("inout\n");*/  rst(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b1101?011")) {/*printf("inout\n");*/  in_out(opcodes(0));}
