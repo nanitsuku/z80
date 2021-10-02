@@ -51,24 +51,6 @@ class Core extends Module {
     reset_hold := 0.B
   }
 
-  // register
-  val F = RegInit(0xFF.U(8.W))
-  val S_flag = WireDefault(F(7))
-  val Z_flag = WireDefault(F(6))
-  val H_flag = WireDefault(F(4))
-  val PV_flag = WireDefault(F(2))
-  val N_flag = WireDefault(F(1))
-  val C_flag = WireDefault(F(0))
-
-  val R = RegInit(40.U(8.W))
-  val I = RegInit(0.U(8.W))
-
-  val alu = Module(new ALU())
-  val alu16 = Module(new ALU16())
-
-  alu16.io.input_register := 0.U
-  alu16.io.offset := 0.S
-
   val PC_next = RegInit(0.U(16.W))
   val in_refresh = RegInit(0.B)
 
@@ -101,6 +83,7 @@ class Core extends Module {
   val E_op = "b011".U(3.W)
   val H_op = "b100".U(3.W)
   val L_op = "b101".U(3.W)
+  val F_op = "b110".U(3.W)
 
   val regfiles_front = Mem(8, UInt(8.W))
   val regfiles_back = Mem(8, UInt(8.W))
@@ -110,6 +93,7 @@ class Core extends Module {
   val C = WireDefault(regfiles_front(C_op))
   val D = WireDefault(regfiles_front(D_op))
   val E = WireDefault(regfiles_front(E_op))
+  val F = WireDefault(regfiles_front(F_op))
   val H = WireDefault(regfiles_front(H_op))
   val L = WireDefault(regfiles_front(L_op))
 
@@ -118,8 +102,27 @@ class Core extends Module {
   val C_prime  = WireDefault(regfiles_back(C_op))
   val D_prime  = WireDefault(regfiles_back(D_op))
   val E_prime  = WireDefault(regfiles_back(E_op))
+  val F_prime =  WireDefault(regfiles_front(F_op))
   val H_prime  = WireDefault(regfiles_back(H_op))
   val L_prime  = WireDefault(regfiles_back(L_op))
+
+  // register
+//  val F = RegInit(0xFF.U(8.W))
+  val S_flag = WireDefault(F(7))
+  val Z_flag = WireDefault(F(6))
+  val H_flag = WireDefault(F(4))
+  val PV_flag = WireDefault(F(2))
+  val N_flag = WireDefault(F(1))
+  val C_flag = WireDefault(F(0))
+
+  val R = RegInit(40.U(8.W))
+  val I = RegInit(0.U(8.W))
+
+  val alu = Module(new ALU())
+  val alu16 = Module(new ALU16())
+
+  alu16.io.input_register := 0.U
+  alu16.io.offset := 0.S
  
   // 16bit registers
   val PC = RegInit(0.U(16.W))
@@ -371,10 +374,180 @@ class Core extends Module {
     }
   }
 
+  def push_pop(opcode:UInt) {
+    // push  M1(4) MX(1) M3(3) M3(3)
+    // pop   M1(4)       M3(3) M3(3)
+    val RP = opcode(5,4)
+//    val RP = 0.U
+//    val RH = 0.U
+//    var RL = 0.U
+/*
+    val rh = WireInit(MuxCase(regfiles_front(B_op),
+      Seq(
+        (RP ===  BC_op) -> regfiles_front(B_op),
+        (RP ===  DE_op) -> regfiles_front(D_op),
+        (RP ===  HL_op) -> regfiles_front(H_op),
+        (RP ===  SP_op) -> regfiles_front(A_op),
+      )
+    ))
+*/
+    val List(rhp, rlp) = ListLookup(RP, List(4.U, 6.U), //List(B_op, C_op),
+      Array(
+        new BitPat(BC_op.litValue(), 3, 2) -> List(B_op, C_op),
+        new BitPat(DE_op.litValue(), 3, 2) -> List(D_op, E_op),
+        new BitPat(HL_op.litValue(), 3, 2) -> List(H_op, L_op),
+        new BitPat(SP_op.litValue(), 3, 2) -> List(A_op, F_op),
+      )
+    )
+/*
+    val rl = WireInit(MuxCase(regfiles_front(C_op),
+      Seq(
+        (RP ===  BC_op) -> regfiles_front(C_op),
+        (RP ===  DE_op) -> regfiles_front(E_op),
+        (RP ===  HL_op) -> regfiles_front(L_op),
+        (RP ===  SP_op) -> F,
+      )
+    ))
+*/
+//    val RH :: RL :: Nil = signals
+
+    switch(opcode(2)) {
+      is(0.B) { // POP
+        switch(machine_state) {
+          is(M1_state) {
+            when(m1_t_cycle === 2.U) {
+              mem_refer_addr := SP
+              opcode_index := opcode_index + 1.U
+              machine_state_next := M2_state
+            }
+          }
+          is(M2_state) {
+            switch(opcode_index) {
+              is(1.U) {
+//                rl := io.bus.data
+                when(m1_t_cycle === 2.U) {
+//                rl := io.bus.data
+//                regfiles_front(rlp) := opcodes(opcode_index)
+                regfiles_front(rlp) := opcodes(opcode_index)
+                printf(p"${rhp} ${rlp} ${RP} ${L_op}\n")
+//                  mem_refer_addr := SP
+                  opcode_index := opcode_index + 1.U
+//                  mem_refer_addr := SP + 1.U
+when(fallingedge(clock.asBool())) {
+
+                  mem_refer_addr := SP + 1.U
+} .otherwise {
+
+                  mem_refer_addr := SP + 1.U
+}
+                 } .elsewhen (m1_t_cycle === 3.U) {
+                   SP := SP + 1.U
+                  mem_refer_addr := SP + 1.U
+                  when(fallingedge(clock.asBool())) {
+//               L := io.bus.data
+//                regfiles_front(L_op) := io.bus.data
+//                  SP := SP + 1.U
+ //               mem_refer_addr := SP + 1.U
+  
+//                  rh := io.bus.data
+                   }
+                }
+              }
+              is(2.U) {
+//                mem_refer_addr := SP
+                  mem_refer_addr := SP + 1.U
+                when(m1_t_cycle === 2.U) {
+//                  rh := io.bus.data
+                regfiles_front(rhp) := io.bus.data
+                  SP := SP + 1.U
+                  machine_state_next := M1_state
+                  opcode_index := 0.U
+//                mem_refer_addr := SP
+                } .otherwise {
+
+//                  opcode_index := 0.U
+//                mem_refer_addr := SP
+                }
+              }
+            }
+         }
+        }
+      } 
+      is(1.B) { // PUSH
+        switch(machine_state) {
+          is(M1_state) {
+            when(m1_t_cycle === 2.U) {
+              opcode_index := opcode_index + 1.U
+              machine_state_next := MX_state_8
+              dummy_cycle := 0.U
+              mem_refer_addr := SP - 1.U
+              SP := SP - 1.U
+            }
+          }
+          is(MX_state_8) {
+            machine_state_next := M3_state
+            machine_state := M3_state
+          }
+          is(M3_state) {
+            switch(opcode_index) {
+              is(1.U) {
+//                io.bus.data1 := rh
+                io.bus.data1 := regfiles_front(rhp)
+                when(m1_t_cycle === 3.U) {
+                  SP := SP - 1.U
+                  opcode_index := opcode_index + 1.U
+                  mem_refer_addr := SP - 1.U
+                } .otherwise {
+//                io.bus.data1 := rh
+                io.bus.data1 := regfiles_front(rhp)
+                }
+              }
+              is(2.U) {
+                //io.bus.data1 := rl
+                io.bus.data1 := regfiles_front(rlp)
+                when(m1_t_cycle === 2.U) {
+//                  when(fallingedge(clock.asBool())) {
+                    machine_state_next := M1_state
+//                  }
+                } .elsewhen(m1_t_cycle === 3.U) {
+                  opcode_index := 0.U
+                }
+                /*
+                when(m1_t_cycle === 2.U) {
+                  io.bus.data1 := rl
+//                  SP := SP - 1.U
+//                  opcode_index := opcode_index + 1.U
+//                  mem_refer_addr := SP - 1.U
+                   machine_state_next := M1_state
+                  opcode_index := 0.U
+               } .elsewhen(m1_t_cycle === 3.U) {
+                  io.bus.data1 := rl
+                  when(risingedge(clock.asBool())) {
+                  machine_state_next := M1_state
+                  opcode_index := 0.U
+                  }
+                  io.bus.data1 := rl
+                } .otherwise {
+                }
+                  io.bus.data1 := rl
+                  */
+                /*
+                mem_refer_addr := SP - 1.U
+                machine_state_next := M1_state
+                opcode_index := 0.U
+                */
+              }
+            }
+          }
+        }
+      } 
+    }
+  }
+
   def add_a_r(opcode:UInt) {
     alu.io.input_A := regfiles_front(A_op)
     alu.io.input_B := regfiles_front(opcodes(0)(2,0))
-    alu.io.input_carry := C_flag
+    alu.io.input_carry := RegInit(C_flag)
     alu.io.calc_type := opcode & "b11111000".U(8.W)
 
     switch(machine_state) {
@@ -825,6 +998,7 @@ def rst(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b11??0?01")) {/*printf("inout\n");*/  push_pop(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???111")) {/*printf("inout\n");*/  rst(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b1101?011")) {/*printf("inout\n");*/  in_out(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b1111?011")) {/*printf("DI/EI\n");*/  iff(opcodes(0));}
