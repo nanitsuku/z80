@@ -40,6 +40,8 @@ class Memory extends Module {
   loadMemoryFromFile(mem, "src/hex/fetch.hex")
 
   mem.write(0x1234.U, 0x55.U)
+//  mem.write(0xFFFF.U, 0xFF.U)
+//  mem.write(0xFFFE.U, 0xFE.U)
 
   io.imem.data := 0.U
 

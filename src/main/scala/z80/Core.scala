@@ -374,6 +374,17 @@ class Core extends Module {
     }
   }
 
+  def rp_pair_af = (RP:UInt) => 
+    ListLookup(RP, List(4.U, 6.U), //List(B_op, C_op),
+      Array(
+        new BitPat(BC_op.litValue(), 3, 2) -> List(B_op, C_op),
+        new BitPat(DE_op.litValue(), 3, 2) -> List(D_op, E_op),
+        new BitPat(HL_op.litValue(), 3, 2) -> List(H_op, L_op),
+        new BitPat(SP_op.litValue(), 3, 2) -> List(A_op, F_op),
+     )
+    )
+ 
+
   def push_pop(opcode:UInt) {
     // push  M1(4) MX(1) M3(3) M3(3)
     // pop   M1(4)       M3(3) M3(3)
@@ -391,6 +402,7 @@ class Core extends Module {
       )
     ))
 */
+/*
     val List(rhp, rlp) = ListLookup(RP, List(4.U, 6.U), //List(B_op, C_op),
       Array(
         new BitPat(BC_op.litValue(), 3, 2) -> List(B_op, C_op),
@@ -399,6 +411,8 @@ class Core extends Module {
         new BitPat(SP_op.litValue(), 3, 2) -> List(A_op, F_op),
       )
     )
+    */
+    val rhp :: rlp :: Nil  = rp_pair_af(RP)
 /*
     val rl = WireInit(MuxCase(regfiles_front(C_op),
       Seq(
@@ -1066,6 +1080,151 @@ def shift_rotate(opcode:UInt) {
   }
 }
 
+def ld_rpp_a(opcode:UInt) {
+
+}
+
+def ex_af_afp(opcode:UInt) {
+  val tmp = Reg(Vec(2, UInt(8.W)))
+
+  switch(m1_t_cycle) {
+    is(2.U) {
+      tmp(0) := regfiles_front(A_op)
+      tmp(1) := regfiles_front(F_op)
+      regfiles_front(A_op) := regfiles_back(A_op) 
+      regfiles_front(F_op) := regfiles_back(F_op) 
+    }
+    is(3.U) {
+      regfiles_back(A_op) := tmp(0)
+      regfiles_back(F_op) := tmp(1)
+      machine_state_next := M1_state
+    }
+    is(4.U) {
+    }
+  }
+}
+
+def cf(opcode:UInt) {
+  when(m1_t_cycle === 3.U) {
+    switch(opcode(3)) {
+      is(0.B) { 
+        // scf
+        regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, 1.B)
+      }
+      is(1.B) {
+        // ccf
+        regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, ~C_flag)
+      }
+    }
+  }
+}
+
+def jr(opcode:UInt) {
+  // JR M1(4) M2(3) MX(5)
+  // JR condition  M1(4) M2(3) MX(7)
+  // DJNZ condition  M1(4) M2(3) MX(8)
+
+  val cond =
+    MuxCase(0.B,
+      Array(
+        (opcode === "b00011000".U) -> 1.B,
+        (opcode === "b00111000".U) -> C_flag,
+        (opcode === "b00110000".U) -> ~C_flag,
+        (opcode === "b00101000".U) -> Z_flag,
+        (opcode === "b00100000".U) -> ~Z_flag,
+        (opcode === "b00010000".U && B =/= 0x00.U) -> 1.B,
+      )
+    )
+
+  switch(machine_state) {
+    is(M1_state) {
+      switch(m1_t_cycle) {
+        is(3.U) {
+          opcode_index := opcode_index + 1.U
+          mem_refer_addr := PC_next
+          machine_state_next := M2_state
+          PC_next := PC_next + 1.U
+        }
+      } 
+    }
+    is(M2_state) {
+
+      dummy_cycle :=
+        MuxCase(5.U, 
+          Array(
+            (opcode === 0x10.U) -> 6.U,
+          )
+        )
+
+      machine_state_next := MX_state_8
+//      PC_next := PC_next + 1.U
+    }
+    is(MX_state_8) {
+      when(m1_t_cycle===4.U) {
+        machine_state_next := M1_state
+        opcode_index := 0.U
+        when(cond) {
+          PC_next := PC_next + Cat(Fill(8, opcodes(1)(7)),opcodes(1))
+        }
+      }
+    }
+  }
+}
+
+def ld_rp_nn(opcode:UInt) {
+  val rhp :: rlp :: Nil = rp_pair_af(opcode(5,4))
+  switch(machine_state) {
+    is(M1_state) {
+      switch(m1_t_cycle) {
+        is(3.U) {
+          opcode_index := opcode_index + 1.U
+          machine_state_next := M2_state
+          mem_refer_addr := PC_next //+ 1.U
+         }
+        is(4.U) {
+        }
+      }
+    }
+    is(M2_state) {
+      mem_refer_addr := PC_next
+      switch(opcode_index) {
+        is(1.U) {
+          switch(m1_t_cycle) {
+            is(2.U) {
+              PC_next := PC_next + 1.U
+              mem_refer_addr := PC_next + 1.U
+              opcode_index := opcode_index + 1.U
+              when(opcode(5,4) === 3.U) {
+              } .otherwise {
+                regfiles_front(rlp) := opcodes(1)
+              }
+            } 
+            is(3.U) {
+            }
+          }
+        }
+        is(2.U) {
+          switch(m1_t_cycle) {
+            is(2.U) {
+              PC_next := PC_next + 1.U
+              machine_state_next := M1_state
+              opcode_index := 0.U
+              when(opcode(5,4) === 3.U) {
+                SP := Cat(opcodes(2), opcodes(1))
+              } .otherwise {
+                regfiles_front(rhp) := opcodes(2)
+              }
+            } 
+            is(3.U) {
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
+
   val opcodes = Mem(4, UInt(8.W))
   val opcode_index = RegInit(0.U(8.W))
 
@@ -1073,6 +1232,11 @@ def shift_rotate(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b0011?111")) {/*printf("LD rp,nn\n");*/  cf(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00???000")) {/*printf("LD rp,nn\n");*/  jr(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00??0010")) {/*printf("LD rp,nn\n");*/  ld_rpp_a(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00??0001")) {/*printf("LD rp,nn\n");*/  ld_rp_nn(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b000??111")) {/*printf("inout\n");*/  shift_rotate(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11??0?01")) {/*printf("inout\n");*/  push_pop(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???111")) {/*printf("inout\n");*/  rst(opcodes(0));}
