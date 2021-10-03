@@ -85,8 +85,10 @@ class Core extends Module {
   val L_op = "b101".U(3.W)
   val F_op = "b110".U(3.W)
 
-  val regfiles_front = Mem(8, UInt(8.W))
-  val regfiles_back = Mem(8, UInt(8.W))
+  //val regfiles_front = Mem(8, UInt(8.W))
+  val regfiles_front = Reg(Vec(8, UInt(8.W)))
+//  val regfiles_back = Mem(8, UInt(8.W))
+  val regfiles_back = Reg(Vec(8, UInt(8.W))) 
 
   val A = WireDefault(regfiles_front(A_op))
   val B = WireDefault(regfiles_front(B_op))

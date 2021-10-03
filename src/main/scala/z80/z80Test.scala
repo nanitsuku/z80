@@ -90,7 +90,9 @@ class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
     while (peek(c.io.exit)==0) {
 //        System.out.printf("%d\n", peekAt(c.core.regfiles_front, 7))
 //        System.out.println(peekAt(c.core.regfiles_front, 7))
-          println(s"AAAA:${peekAt(c.core.regfiles_front, c.core.A_op.litValue().toInt)}")
+
+//          println(s"AAAA:${peekAt(c.core.regfiles_front, c.core.A_op.litValue().toInt)}")
+
 //          println(s"${peek(c.core.A).toInt}")
 //        System.out.println(peek(c.core.A))
 //        println(s"${peek(c.core.regfiles_front(7))}\n")
@@ -325,17 +327,67 @@ class hhh extends FlatSpec with Matchers {
 */
 
 class hogetop extends Module {
- var io= IO(new Bundle {
-  val A = Output(UInt(8.W))
+  var io = IO(new Bundle {
+//  val A = Output(UInt(8.W))
+  val regs_front = Output(Vec(8,UInt(8.W)))
+  val regs_back = Output(Vec(8,UInt(8.W)))
+  val exit = Output(Bool())
+  val machine_state = Output(UInt(8.W))
+  val t_cycle = Output(UInt(8.W))
+  val PC = Output(UInt(16.W))
+  val SP = Output(UInt(16.W))
+  val IX = Output(UInt(16.W))
+  val IY = Output(UInt(16.W))
+  val R = Output(UInt(8.W))
+  val I = Output(UInt(8.W))
  })
+
 
  val top = Module(new Top)
 
- val A = WireDefault(0.U(8.W))
+// val A = WireDefault(0.U(8.W))
+// val reg = Wire(Vec(8,UInt(8.W)))
 
- BoringUtils.bore(top.core.A, Seq(io.A))
+ for ( i <- 0 to 7 ) {
+  io.regs_front(i) :=  WireDefault(0.U(8.W))
+  io.regs_back(i) :=  WireDefault(0.U(8.W))
+//  reg(i) := io.reg(i)
+//  io.reg(i) := reg(i)
+  BoringUtils.bore(top.core.regfiles_front(i), Seq(io.regs_front(i)))
+  BoringUtils.bore(top.core.regfiles_back(i), Seq(io.regs_back(i)))
+//  io.reg(i) := reg(i)
+ }
 
- io.A := A
+ io.exit := WireDefault(0.B)
+ io.machine_state := WireDefault(0.U(8.W))
+ io.t_cycle := WireDefault(0.U(8.W))
+ 
+ io.PC := WireDefault(0.U(16.W))
+ io.SP := WireDefault(0.U(16.W))
+ io.IX := WireDefault(0.U(16.W))
+ io.IY := WireDefault(0.U(16.W))
+ 
+ io.R := WireDefault(0.U(8.W))
+ io.I := WireDefault(0.U(8.W))
+
+// BoringUtils.bore(top.core.A, Seq(io.A))
+ BoringUtils.bore(top.io.exit, Seq(io.exit))
+ BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
+ BoringUtils.bore(top.core.m1_t_cycle, Seq(io.t_cycle))
+ 
+ BoringUtils.bore(top.core.PC, Seq(io.PC))
+ BoringUtils.bore(top.core.SP, Seq(io.SP))
+ BoringUtils.bore(top.core.IX, Seq(io.IX))
+ BoringUtils.bore(top.core.IY, Seq(io.IY))
+ 
+ BoringUtils.bore(top.core.R, Seq(io.R))
+ BoringUtils.bore(top.core.I, Seq(io.I))
+// Boring
+
+// io.A := A
+// io.exit := exit
+// io.machine_state := machine_state
+// io.t_cycle := t_cycle
 
 }
 
@@ -347,11 +399,45 @@ object TopTest22 extends App {
 //    val backend = "vcs"
 //    val backend = "vsim"
     val backend = "verilator"
+    var prev_state = -1
     iotesters.Driver.execute(Array("--backend-name", backend), () => new hogetop()) {
         c => new PeekPokeTester(c) {
-          while(true) {
-            println(s"${peek(c.io.A)}\n")
+          System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
+          while(peek(c.io.exit)==0) {
+            val machine_state:Int = peek(c.io.machine_state).toInt
+            val t_cycle:Int = peek(c.io.t_cycle).toInt
+            if ( machine_state == 1 && prev_state != 1)  {
+//              System.out.println(s"${peek(c.io.reg(c.top.core.A_op.litValue().toInt))}\n")
+/*
+              System.out.println(s"${c.top.core.A_op}\n")
+*/
+              val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+              val pc = peek(c.io.PC).toInt
+              val sp = peek(c.io.SP).toInt
+              val ix = peek(c.io.IX).toInt
+              val iy = peek(c.io.IY).toInt
+              val r = peek(c.io.R)
+              val i = peek(c.io.I)
+
+              System.out.print(f"$pc%04X ")
+//:              System.out.print(s"${Integer.toString(peek(c.io.PC).toInt, 16)}%X ")
+              regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+              regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+              System.out.print(f"$sp%04X ")
+              System.out.print(f"$ix%04X ")
+              System.out.print(f"$iy%04X ")
+              System.out.print(f"$r%02X ")
+              System.out.print(f"$i%02X ")
+              /*
+              for ( i <-0 to 7 ) {
+                System.out.print(s"${peek(c.io.reg(i))} ")
+              }
+              */
+              System.out.println()
+//              System.out.println(s"${c.top.core.A_op.litValue().toInt}\n")
+            }
             step(1)
+            prev_state = machine_state
           }
       }
     }
