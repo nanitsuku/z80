@@ -313,7 +313,67 @@ class Core extends Module {
         regfiles_front(opcodes(0)(5,3)) := alu.io.output_C
       }
     }
+  }
 
+  def ld_rr_rp_nn(opcode:UInt) {
+    // LD A,(BC|DE)   M1(4) M2(3)
+    // LD A,(nn)      M1(4) M2(3) M2(3) M2(3)
+    // LD HL,(nn)     M1(4) M2(3) M2(3) M2(3) M2(3)
+    switch(machine_state) {
+      is(M1_state) {
+        when(m1_t_cycle === 3.U) {
+          when(~opcode(5)) { // ld A,(BC|DE)
+            mem_refer_addr := Mux(opcode(4), Cat(D, E), Cat(B, C))
+          } .otherwise {
+            mem_refer_addr := PC_next
+          }
+          machine_state_next := M2_state
+          opcode_index := opcode_index + 1.U
+        }
+      }
+      is(M2_state) {
+        when(~opcode(5)) {
+          // ld A,(BC|DE)
+          regfiles_front(A_op) := io.bus.data
+          machine_state_next := M1_state
+          opcode_index := 0.U
+        } .otherwise {
+          // ld A,(nn)  ld HL,(nn)
+          switch(opcode_index)   {
+            is(1.U) {
+              mem_refer_addr := PC_next + 1.U
+              PC_next := PC_next + 1.U
+              opcode_index := opcode_index + 1.U
+            }
+            is(2.U) {
+              when(opcode(4)) {
+                // LD A,(nn)
+                regfiles_front(A_op) := io.bus.data
+              } .otherwise {
+                // LD HL,(nn)
+                regfiles_front(L_op) := io.bus.data
+              }
+              mem_refer_addr := Cat(opcodes(2), opcodes(1))
+              PC_next := PC_next + 1.U
+              opcode_index := opcode_index + 1.U
+            }
+            is(3.U) {
+              regfiles_front(H_op) := io.bus.data
+              when(opcode(4)) {
+                machine_state_next := M1_state
+                opcode_index := 0.U
+              }
+              mem_refer_addr := mem_refer_addr + 1.U    
+            }
+            is(4.U) {
+              machine_state_next := M1_state
+              opcode_index := 0.U
+            }
+          }
+//          opcode_index := opcode_index + 1.U
+        }
+      }
+    }
   }
 
   def ld_r1_r2_hl(instruction:UInt) {
@@ -1290,6 +1350,8 @@ def ld_rp_nn(opcode:UInt) {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
+
+    .elsewhen (opcodes(0) === BitPat("b00??1010")) {/*printf("LD rp,nn\n");*/  ld_rr_rp_nn(opcodes(0));}
 
 //    .elsewhen (opcodes(0) === BitPat("b0010?010")) {/*printf("LD rp,nn\n");*/  ld_hl_nnp(opcodes(0));}
 
