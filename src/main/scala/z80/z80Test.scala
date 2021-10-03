@@ -278,7 +278,7 @@ object TopTest extends App {
         c => new PeekPokeTester(c) {
 //          chisel3.util.experimental.loadMemoryFromFile(c.memory.mem, "src/hex/fetch.hex")
 //          for(i <- 1 to 10) {
-        var regs = c.io.registers
+//        var regs = c.io.registers
         var m1 = 0
         while(peek(c.io.exit)==0) { 
 //          peekAt(c.core.regfiles_front, 7)
@@ -288,10 +288,10 @@ object TopTest extends App {
 //peek(c.core.A)
 //peek(c.core.io.bus.addr)
           if (m1==0 && peek(c.io.M1)==1) {
-          println(s"aaaa:${peek(c.io.registers.PC)}")
+//          println(s"aaaa:${peek(c.io.registers.PC)}")
           }
           m1 = peek(c.io.M1).toInt
-          regs = c.io.registers
+//          regs = c.io.registers
 //println(s"m1:${peek(c.io.M1)}")
 //peek("Top.core_io_bus_data")
 //peek("Top_io_exit")

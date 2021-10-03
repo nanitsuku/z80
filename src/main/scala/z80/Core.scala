@@ -25,6 +25,7 @@ class AFIO extends Bundle {
 }
 */
 
+/*
 class Registers extends Bundle {
     val registers_front = Output(Vec(8, UInt(8.W)))
     val registers_back= Output(Vec(8, UInt(8.W)))
@@ -33,15 +34,16 @@ class Registers extends Bundle {
     val IX = Output(UInt(8.W))
     val IY = Output(UInt(8.W))
 }
+*/
 
 class Core extends Module {
-  val regs = new  Registers
+//  val regs = new  Registers
 
   val io = IO(new Bundle {
     val bus = Flipped(new ImemPortIo())
     val exit = Output(Bool())
 //    val registers = Output(Vec(8, UInt(8.W)))
-    val registers = regs
+//    val registers = regs
     val M1 = Output(UInt(8.W))
   })
 
@@ -136,7 +138,7 @@ class Core extends Module {
   val DE_op = "b01".U
   val HL_op = "b10".U
   val SP_op = "b11".U
-
+/*
   for( i <- 0 to 7) {
     io.registers.registers_front(i):= regfiles_front(i.asUInt())
     io.registers.registers_back(i):= regfiles_back(i.asUInt())
@@ -145,7 +147,7 @@ class Core extends Module {
   io.registers.IY := IY
   io.registers.PC := PC 
   io.registers.SP := SP
- 
+*/ 
   def ld_r_ix_iy_d(instruction:UInt) {
     // M1 -> M1 -> M2 -> MX(5) -> M2
     switch(machine_state) {

@@ -6,7 +6,7 @@ import chisel3.util._
 class Top extends Module {
   val io = IO(new Bundle {
     val exit = Output(Bool())
-    val registers = new Registers 
+//    val registers = new Registers 
     val M1 = Output(Bool())
   })
   
@@ -17,7 +17,7 @@ class Top extends Module {
 //  core.io.dd <> decoder.io.dd
   io.exit := core.io.exit
 
-  io.registers := core.io.registers
+//  io.registers := core.io.registers
 
   io.M1 := core.io.M1
 }
