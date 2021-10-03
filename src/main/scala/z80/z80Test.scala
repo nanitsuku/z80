@@ -400,13 +400,14 @@ object TopTest22 extends App {
 //    val backend = "vsim"
     val backend = "verilator"
     var prev_state = -1
+    var prev_t_cycle = -1
     iotesters.Driver.execute(Array("--backend-name", backend), () => new hogetop()) {
         c => new PeekPokeTester(c) {
           System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
           while(peek(c.io.exit)==0) {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
-            if ( machine_state == 1 && prev_state != 1)  {
+            if (machine_state == 1 &&  (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 && t_cycle == 1)))  {
 //              System.out.println(s"${peek(c.io.reg(c.top.core.A_op.litValue().toInt))}\n")
 /*
               System.out.println(s"${c.top.core.A_op}\n")
@@ -438,7 +439,8 @@ object TopTest22 extends App {
             }
             step(1)
             prev_state = machine_state
-          }
+            prev_t_cycle = t_cycle
+          } 
       }
     }
 }

@@ -352,24 +352,31 @@ class Core extends Module {
             is(2.U) {
               when(opcode(4)) {
                 // LD A,(nn)
-                regfiles_front(A_op) := io.bus.data
+//                regfiles_front(A_op) := io.bus.data
+                /*
+                machine_state_next := M1_state
+                opcode_index := 0.U
+                */
               } .otherwise {
                 // LD HL,(nn)
-                regfiles_front(L_op) := io.bus.data
+//                regfiles_front(L_op) := io.bus.data
               }
               mem_refer_addr := Cat(opcodes(2), opcodes(1))
               PC_next := PC_next + 1.U
               opcode_index := opcode_index + 1.U
             }
             is(3.U) {
-              regfiles_front(H_op) := io.bus.data
               when(opcode(4)) {
+                regfiles_front(A_op) := io.bus.data
                 machine_state_next := M1_state
                 opcode_index := 0.U
+              } .otherwise {
+                regfiles_front(L_op) := io.bus.data
               }
               mem_refer_addr := mem_refer_addr + 1.U    
             }
             is(4.U) {
+              regfiles_front(H_op) := io.bus.data
               machine_state_next := M1_state
               opcode_index := 0.U
             }
@@ -624,8 +631,8 @@ when(fallingedge(clock.asBool())) {
 
   def add_a_r(opcode:UInt) {
     val src_reg = RegInit(0.U(8.W))
-//    alu.io.input_A := regfiles_front(A_op)
-    alu.io.input_A := src_reg
+    alu.io.input_A := regfiles_front(A_op)
+//    alu.io.input_A := src_reg
     alu.io.input_B := regfiles_front(opcodes(0)(2,0))
 //    alu.io.input_carry := RegInit(C_flag)
     alu.io.input_carry := C_flag
