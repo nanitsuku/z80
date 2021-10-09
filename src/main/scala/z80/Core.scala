@@ -3,47 +3,12 @@ package z80
 import chisel3._
 import chisel3.util._
 
-/*
-class Decoder extends Module {
-  val io = IO(new Bundle {
-    val dd = new DecoderIo()
-  })
-
-  def exchange(bbb:UInt) {
-  }
-
-  io.dd.m1 := 1.B
-  printf(p"data: 0x${Hexadecimal(io.dd.byte)}\n")
-
-  when (io.dd.byte === BitPat("b00001000")) {printf("EX AF,AF'\n"); io.dd.m1:=0.B; exchange(io.dd.byte)}
-  when (io.dd.byte === BitPat("b000?1010")) {printf("LD A,(BC) or LD A,(DE)\n"); io.dd.m1:=0.B}
-}
-
-class AFIO extends Bundle {
-  val A = Input(UInt(8.W))
-  val F = Input(UInt(8.W))
-}
-*/
-
-/*
-class Registers extends Bundle {
-    val registers_front = Output(Vec(8, UInt(8.W)))
-    val registers_back= Output(Vec(8, UInt(8.W)))
-    val PC = Output(UInt(8.W))
-    val SP = Output(UInt(8.W))
-    val IX = Output(UInt(8.W))
-    val IY = Output(UInt(8.W))
-}
-*/
 
 class Core extends Module {
-//  val regs = new  Registers
 
   val io = IO(new Bundle {
     val bus = Flipped(new ImemPortIo())
     val exit = Output(Bool())
-//    val registers = Output(Vec(8, UInt(8.W)))
-//    val registers = regs
     val M1 = Output(UInt(8.W))
   })
 
@@ -68,10 +33,7 @@ class Core extends Module {
 
   val IFF = RegInit(0.B)
 
-
   val mem_refer_addr = RegInit(0.U(16.W))
-//  val mem_refer_addr = Wirefault(0.U(16.W))
-//  val mem_refer_addr = WireDefault(PC_next)
 
   io.bus.data1 := 0.U
   io.bus.IORQ_ := 1.B
@@ -138,16 +100,7 @@ class Core extends Module {
   val DE_op = "b01".U
   val HL_op = "b10".U
   val SP_op = "b11".U
-/*
-  for( i <- 0 to 7) {
-    io.registers.registers_front(i):= regfiles_front(i.asUInt())
-    io.registers.registers_back(i):= regfiles_back(i.asUInt())
-  }
-  io.registers.IX := IX
-  io.registers.IY := IY
-  io.registers.PC := PC 
-  io.registers.SP := SP
-*/ 
+ 
   def ld_r_ix_iy_d(instruction:UInt) {
     // M1 -> M1 -> M2 -> MX(5) -> M2
     switch(machine_state) {
