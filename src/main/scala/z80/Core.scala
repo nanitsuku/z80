@@ -1167,6 +1167,20 @@ def ld_rpp_a(opcode:UInt) {
   }
 }
 
+def ld_sp_hl(opcode:UInt) {
+
+  switch(machine_state) {
+    is(M1_state) {
+      SP := Cat(regfiles_front(H_op),regfiles_front(L_op))
+      dummy_cycle := 2.U
+      machine_state_next := MX_state_8
+    }
+    is(MX_state_8) {
+      machine_state_next := M1_state
+    }
+  }
+}
+
 def ex_af_afp(opcode:UInt) {
   val tmp = Reg(Vec(2, UInt(8.W)))
 
@@ -1324,6 +1338,24 @@ def ld_rp_nn(opcode:UInt) {
     }
   }
 
+  def ex_de_hl(opcode:UInt) {
+    val regfiles_tmp = Reg(Vec(8, UInt(8.W)))
+    val list = List((D_op, E_op), (H_op, L_op))
+
+    when(m1_t_cycle === 2.U) {
+      regfiles_tmp(list(0)._1) := regfiles_front(list(1)._1)
+      regfiles_tmp(list(0)._2) := regfiles_front(list(1)._2)
+      regfiles_tmp(list(1)._1) := regfiles_front(list(0)._1)
+      regfiles_tmp(list(1)._2) := regfiles_front(list(0)._2)
+    } .otherwise {
+      regfiles_front(list(0)._1) := regfiles_tmp(list(0)._1)
+      regfiles_front(list(0)._2) := regfiles_tmp(list(0)._2)
+      regfiles_front(list(1)._1) := regfiles_tmp(list(1)._1)
+      regfiles_front(list(1)._2) := regfiles_tmp(list(1)._2)
+    }
+  }
+
+
   def ex_spa_hl(opcode:UInt) {
     // M1(4) M2(3) M2(3) MX(3) M3(3) M3(3)   5/19
     val tmph = Reg(UInt(8.W))
@@ -1414,8 +1446,12 @@ def ld_rp_nn(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+
+    .elsewhen (opcodes(0) === BitPat("b11111001")) {/*printf("JP nn");*/  ld_sp_hl(opcodes(0));}
+
     .elsewhen (opcodes(0) === BitPat("b11101001")) {/*printf("JP nn");*/  jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11101011")) {/*printf("ex_de_hl\n");*/  ex_de_hl(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11100011")) {/*printf("exx\n");*/  ex_spa_hl(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
 
