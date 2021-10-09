@@ -325,8 +325,8 @@ class Core extends Module {
                 opcode_index := 0.U
               } .otherwise {
                 regfiles_front(L_op) := io.bus.data
-                mem_refer_addr := mem_refer_addr + 1.U    
               }
+              mem_refer_addr := mem_refer_addr + 1.U    
             }
             is(4.U) {
               regfiles_front(H_op) := io.bus.data
@@ -1317,6 +1317,88 @@ def ld_rp_nn(opcode:UInt) {
     }
   }
 
+  def ex_spa_hl(opcode:UInt) {
+    // M1(4) M2(3) M2(3) MX(3) M3(3) M3(3)   5/19
+    val tmph = Reg(UInt(8.W))
+    val tmpl = Reg(UInt(8.W))
+    switch(machine_state) {
+      is(M1_state) {
+        switch(m1_t_cycle) {
+          is(2.U) {
+            tmph := H
+            tmpl := L
+          }
+          is(3.U) {
+            mem_refer_addr := SP
+            machine_state_next := M2_state
+            opcode_index := opcode_index + 1.U
+          }
+        }
+     }
+      is(M2_state) {
+        switch(opcode_index) {
+          is(1.U) {
+            regfiles_front(L_op) := io.bus.data
+            mem_refer_addr := SP + 1.U
+            opcode_index := opcode_index + 1.U
+          }
+          is(2.U) {
+            regfiles_front(H_op) := io.bus.data
+            mem_refer_addr := SP
+            opcode_index := opcode_index + 1.U
+            dummy_cycle := 3.U
+            machine_state_next := MX_state_8
+          }
+        }
+      }
+      is(MX_state_8) {
+        machine_state_next := M3_state
+      }
+      is(M3_state) {
+        switch(opcode_index) {
+          is(3.U) {
+              io.bus.data1:= tmpl
+            when(m1_t_cycle === 2.U) {
+//              io.bus.data1:= tmpl
+            } .otherwise {
+              when(fallingedge(clock.asBool())) {
+              mem_refer_addr := SP + 1.U
+//            io.bus.data1:= tmph
+              }
+              opcode_index := opcode_index + 1.U
+            }
+          }
+          is(4.U) {
+              io.bus.data1:= tmph
+            when(m1_t_cycle === 2.U) {
+//              io.bus.data1:= tmph
+
+/*
+              machine_state_next := M1_state
+              opcode_index := 0.U
+              */
+ //             mem_refer_addr := SP + 1.U
+              when(fallingedge(clock.asBool())) {
+                 machine_state_next := M1_state
+              opcode_index := 0.U
+              io.bus.data1:= tmph
+              }
+            } .otherwise {
+                machine_state_next := M1_state
+              opcode_index := 0.U
+              io.bus.data1:= tmph
+              when(risingedge(clock.asBool())) {
+             io.bus.data1:= tmph
+              }
+//              opcode_index := opcode_index + 1.U
+//              io.bus.data1:= tmph
+            }
+          }
+        }
+      }
+    }
+  }
+
 
   val opcodes = Mem(4, UInt(8.W))
   val opcode_index = RegInit(0.U(8.W))
@@ -1326,6 +1408,7 @@ def ld_rp_nn(opcode:UInt) {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11100011")) {/*printf("exx\n");*/  ex_spa_hl(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b00??1010")) {/*printf("LD rp,nn\n");*/  ld_rr_rp_nn(opcodes(0));}
