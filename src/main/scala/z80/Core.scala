@@ -708,11 +708,18 @@ when(fallingedge(clock.asBool())) {
       is (M1_state) {
         switch(m1_t_cycle) {
           is(2.U) {
-        machine_state_next := M2_state
-        opcode_index := 1.U
-//        PC_next := PC_next + 1.U
-          mem_refer_addr := PC_next + 1.U
-          }
+            when(opcodes(0) === BitPat("b11101001")) {
+              // JP (HL)
+              machine_state_next := M1_state
+              opcode_index := 0.U
+              PC_next := Cat(regfiles_front(H_op), regfiles_front(L_op))
+            } .otherwise {
+              machine_state_next := M2_state
+              opcode_index := 1.U
+      //        PC_next := PC_next + 1.U
+              mem_refer_addr := PC_next + 1.U
+            }
+         }
         }
       }
       is (M2_state) {
@@ -1407,6 +1414,7 @@ def ld_rp_nn(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b11101001")) {/*printf("JP nn");*/  jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11100011")) {/*printf("exx\n");*/  ex_spa_hl(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
@@ -1433,7 +1441,7 @@ def ld_rp_nn(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b01??????")) {/*printf("LD r1,r2\n");*/  ld_r1_r2_hl(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b0????110")) {/*printf("LD r,n_(hl)\n");*/  ld_a_n(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b10??????") || opcodes(0) === BitPat("b11???110")) {/*printf("ADD A,r\n");*/  add_a_r(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11???010")) {/*printf("JP nn");*/  jp(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11101001") || opcodes(0) === BitPat("b11???010")) {/*printf("JP nn");*/  jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011101")) {/*printf("DD");*/  ld_r_ix_iy_d(opcodes(0));}
    /*
     .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
