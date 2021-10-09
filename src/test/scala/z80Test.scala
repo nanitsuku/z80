@@ -14,7 +14,7 @@ import firrtl_interpreter.InterpretiveTester
 class HexTest extends FlatSpec with ChiselScalatestTester {
 //class HexTest extends ChiselFlatSpec {
   "mycpu" should "work through hex" in {
-    test(new Top).withAnnotations(Seq(VerilatorBackendAnnotation)) { c =>
+    test(new Top("src/hex/fetch.hex")).withAnnotations(Seq(VerilatorBackendAnnotation)) { c =>
       while (!c.io.exit.peek().litToBoolean){
         c.clock.step(1)
 //        println(s"${c.core.A.peek()}")
@@ -49,7 +49,7 @@ class hhh extends FlatSpec with Matchers {
   behavior of "hhh"
 
   it should "hhh" in {
-    chisel3.iotesters.Driver(() => new Top) {
+    chisel3.iotesters.Driver(() => new Top("src/hex/fetch.hex")) {
       c =>
         new TopTestPeekPokeTester(c)
     } should be (true)

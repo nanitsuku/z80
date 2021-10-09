@@ -103,7 +103,7 @@ class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
 object TopGenerate extends App {
 //    chisel3.Driver.execute(args, () => new Top)
     (new chisel3.stage.ChiselStage).emitVerilog(
-        new Top
+        new Top("src/hex/fetch.hex")
     )
 }
 
@@ -272,7 +272,7 @@ object TopTest extends App {
 //    val backend = "vcs"
 //    val backend = "vsim"
     val backend = "verilator"
-    iotesters.Driver.execute(Array("--backend-name", backend), () => new Top()) {
+    iotesters.Driver.execute(Array("--backend-name", backend), () => new Top("src/hex/fetch.hex")) {
 //    iotesters.Driver.execute(Array("--tr-write-vcd"), () => new Top()) {
 //        /*
         c => new PeekPokeTester(c) {
@@ -326,7 +326,7 @@ class hhh extends FlatSpec with Matchers {
 }
 */
 
-class hogetop extends Module {
+class TopSupervisor(filename:String) extends Module {
   var io = IO(new Bundle {
 //  val A = Output(UInt(8.W))
   val regs_front = Output(Vec(8,UInt(8.W)))
@@ -343,7 +343,7 @@ class hogetop extends Module {
  })
 
 
- val top = Module(new Top)
+ val top = Module(new Top(filename))
 
 // val A = WireDefault(0.U(8.W))
 // val reg = Wire(Vec(8,UInt(8.W)))
@@ -401,7 +401,11 @@ object TopTest22 extends App {
     val backend = "verilator"
     var prev_state = -1
     var prev_t_cycle = -1
-    iotesters.Driver.execute(Array("--backend-name", backend), () => new hogetop()) {
+//    val filename =  "src/hex/fetch.hex"
+//    val filename =  "src/hex/ld.hex"
+    val filename =  "src/hex/ex.hex"
+    val driverTestDir = "hogehoge"
+    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir), () => new TopSupervisor(filename)) {
         c => new PeekPokeTester(c) {
           System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
           while(peek(c.io.exit)==0) {

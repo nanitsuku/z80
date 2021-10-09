@@ -15,7 +15,7 @@ class hogehogehoge2 extends FlatSpec with Matchers {
   behavior of "hhh"
 
   it should "hhh" in {
-   val s = Driver.emit(() => new Top)
+   val s = Driver.emit(() => new Top("src/hex/fetch.hex"))
 
     val tester = new InterpretiveTester(s)
 
