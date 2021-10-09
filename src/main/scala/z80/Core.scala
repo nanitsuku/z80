@@ -1304,6 +1304,18 @@ def ld_rp_nn(opcode:UInt) {
 
   }
 
+  def exx(opcode:UInt) {
+    val regfiles_tmp = Reg(Vec(8, UInt(8.W)))
+
+    for( r <- List(B_op, C_op, D_op, E_op, H_op, L_op)) {
+      when(m1_t_cycle === 2.U) {
+        regfiles_tmp(r) := regfiles_front(r)
+      } .otherwise {
+        regfiles_front(r) := regfiles_back(r)
+        regfiles_back(r) := regfiles_tmp(r)
+      }
+    }
+  }
 
 
   val opcodes = Mem(4, UInt(8.W))
@@ -1313,6 +1325,7 @@ def ld_rp_nn(opcode:UInt) {
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("LD rp,nn\n");*/  ex_af_afp(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b00??1010")) {/*printf("LD rp,nn\n");*/  ld_rr_rp_nn(opcodes(0));}
