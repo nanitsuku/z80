@@ -405,7 +405,8 @@ object TopTest22 extends App {
 //    val filename =  "src/hex/ld.hex"
     val filename =  "src/hex/ex.hex"
     val driverTestDir = "hogehoge"
-    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir), () => new TopSupervisor(filename)) {
+    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir),
+       () => new TopSupervisor(if (args.length>0) args(0) else filename)) {
         c => new PeekPokeTester(c) {
           System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
           while(peek(c.io.exit)==0) {
