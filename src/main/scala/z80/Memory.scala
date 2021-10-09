@@ -27,7 +27,7 @@ class DecoderIo extends Bundle {
   val m1 = Output(Bool())
 }
 
-class Memory extends Module {
+class Memory(filename:String) extends Module {
   val io = IO(new Bundle {
     val imem = new ImemPortIo()
   })
@@ -37,11 +37,8 @@ class Memory extends Module {
 
   val mem = Mem(65536, UInt(8.W))
   val peek = mem(0x1000.U)
-  loadMemoryFromFile(mem, "src/hex/fetch.hex")
-
-  mem.write(0x1234.U, 0x55.U)
-//  mem.write(0xFFFF.U, 0xFF.U)
-//  mem.write(0xFFFE.U, 0xFE.U)
+//  loadMemoryFromFile(mem, "src/hex/fetch.hex")
+  loadMemoryFromFile(mem, filename)
 
   io.imem.data := 0.U
 
