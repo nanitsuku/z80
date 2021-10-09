@@ -325,8 +325,8 @@ class Core extends Module {
                 opcode_index := 0.U
               } .otherwise {
                 regfiles_front(L_op) := io.bus.data
-              }
               mem_refer_addr := mem_refer_addr + 1.U    
+            }
             }
             is(4.U) {
               regfiles_front(H_op) := io.bus.data
