@@ -6,6 +6,8 @@ import chisel3.iotesters._
 import org.scalatest._
 import chisel3.util.experimental.BoringUtils
 
+import scala.util.matching.Regex
+
 //import chiseltest._
 //import chiseltest.experimental.TestOptionBuilder._
 //import chiseltest.internal.VerilatorBackendAnnotation
@@ -22,6 +24,9 @@ import scalafx.scene.control.TextField
 import scalafx.scene.layout.VBox
 import treadle.executable.Big
 import java.math.MathContext
+import org.scalacheck.Prop
+import java.util.ArrayList
+import scala.collection.mutable.ListBuffer
 
 object ScalaFxHello extends JFXApp  {
   val tf = new TextField()
@@ -398,34 +403,54 @@ object TopTest22 extends App {
 //    val backend = "ivl"
 //    val backend = "vcs"
 //    val backend = "vsim"
+
+    val unit_test = new UnitTest("src/hex/test.lst")
     val backend = "verilator"
     var prev_state = -1
     var prev_t_cycle = -1
 //    val filename =  "src/hex/fetch.hex"
 //    val filename =  "src/hex/ld.hex"
-    val filename =  "src/hex/ex.hex"
+//    val filename =  "src/hex/ex.hex"
+    val filename_default =  "src/hex/test"
+    val filename = if (args.length>0) args(0) else filename_default
     val driverTestDir = "hogehoge"
+    var first = true
+    var prev_address = 0
+    var prev_pc = 0.U
+    var pc = 0.U
+    var cc = 0
     iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir),
-       () => new TopSupervisor(if (args.length>0) args(0) else filename)) {
+       () => new TopSupervisor(filename + ".hex")) {
         c => new PeekPokeTester(c) {
+      val unit_test = new UnitTest(filename + ".lst")
           System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
+              val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+//              pc = peek(c.io.PC).U
+              val sp = peek(c.io.SP).U
+              val ix = peek(c.io.IX).U
+              val iy = peek(c.io.IY).U
+              val r = peek(c.io.R).U
+              val i = peek(c.io.I).U
+              /*
+              val itt = if(first) {
+                first = false
+                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
+              }
+              */
+               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
+//                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
+
           while(peek(c.io.exit)==0) {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
+
             if (machine_state == 1 &&  (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 && t_cycle == 1)))  {
 //              System.out.println(s"${peek(c.io.reg(c.top.core.A_op.litValue().toInt))}\n")
 /*
               System.out.println(s"${c.top.core.A_op}\n")
 */
-              val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
-              val pc = peek(c.io.PC).toInt
-              val sp = peek(c.io.SP).toInt
-              val ix = peek(c.io.IX).toInt
-              val iy = peek(c.io.IY).toInt
-              val r = peek(c.io.R)
-              val i = peek(c.io.I)
-
-              System.out.print(f"$pc%04X ")
+              pc = peek(c.io.PC).U
+              System.out.print(f"$prev_pc%04X ")
 //:              System.out.print(s"${Integer.toString(peek(c.io.PC).toInt, 16)}%X ")
               regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
               regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
@@ -434,18 +459,147 @@ object TopTest22 extends App {
               System.out.print(f"$iy%04X ")
               System.out.print(f"$r%02X ")
               System.out.print(f"$i%02X ")
-              /*
-              for ( i <-0 to 7 ) {
-                System.out.print(s"${peek(c.io.reg(i))} ")
-              }
-              */
+
               System.out.println()
-//              System.out.println(s"${c.top.core.A_op.litValue().toInt}\n")
+              val s = itt.next().asInstanceOf[Status]
+
+              s.print()
+              cc = cc + 1
             }
             step(1)
             prev_state = machine_state
             prev_t_cycle = t_cycle
+            prev_pc = pc
           } 
       }
     }
+}
+
+object Status {
+  val prime_offset = 8
+  val A=0;
+  val B=1;
+  val C=2;
+  val D=3;
+  val E=4;
+  val H=5;
+  val L=6;
+  val F=7;
+  val A_ = A+prime_offset;
+  val B_ = B+prime_offset;
+  val C_ = C+prime_offset;
+  val D_ = D+prime_offset;
+  val E_ = E+prime_offset;
+  val H_ = H+prime_offset;
+  val L_ = L+prime_offset;
+  val F_ = F+prime_offset;
+  val register_index = Map(
+    "RA"->0,"RB"->1,"RC"->2,"RD"->3,"RE"->4,"RH"->5,"RL"->6,"RF"->7,
+  )
+}
+
+case class Status(pc:Integer, regs:Array[UInt]) {
+//  var regfiles = Array[UInt]()
+//  var PC = 0x0000;
+  var regfiles = regs
+  var PC = pc
+
+  def print() {
+    System.out.print(f"$PC%04X ")
+    regfiles.map( {n => val dd = n.litValue; System.out.print(f"$dd%02X ")})
+    println
+  }
+}
+
+class UnitTest(filename:String) {
+  var prev_status:Status = new Status(0,Array[UInt]())
+  var expect_status:Status = new Status(0,Array[UInt]())
+
+  val bufferedSource = io.Source.fromFile(filename)
+
+  var PC = 0x0000;
+
+  val expects:ListBuffer[Status] = ListBuffer()
+
+  def initialize2 = {
+    for (line <- bufferedSource.getLines()) yield {
+      val comm = line.split("; ")
+      val cols = line.split(" ")
+      if(cols(0).matches("[0-9a-fA-F]{4}")) {
+        expect_status.PC = Integer.parseInt(cols(0), 16)
+        for(e <- comm) {
+          if(e.toLowerCase.startsWith("expect")) {
+//            print(e)
+            for((ee, index) <- e.split("""\s+""").drop(1).zipWithIndex) {
+              if(index >= 1 && index <= 16) {
+                expect_status.regfiles(index-1) = 
+                  if(ee.startsWith("R")) {
+                    prev_status.regfiles(Status.register_index(ee))
+                  } else if(ee=="NC") {
+                    prev_status.regfiles(index-1)
+                  } else {
+                    Integer.parseInt(ee, 16).asUInt()
+                  }
+              }
+            }
+//            println
+          }
+//          expect_status.print()
+//          println(expects.length.toString())
+//          expect_status.print()
+        }
+//        expect_status.print()
+//        expects :+ expect_status
+        expects += expect_status.copy()
+        prev_status = expect_status
+        expect_status
+      }
+    }
+  }
+
+  def initialize(regs_f:List[UInt],regs_b:List[UInt], PC:UInt, IX:UInt, IY:UInt, IFF:UInt, IFF2:UInt, R:UInt, I:UInt): Iterator[Any] = {
+    prev_status.regfiles =  Array.concat(regs_f.toArray, regs_b.toArray)
+    expect_status = prev_status
+    initialize2
+  }
+
+  def check(regs_f:List[UInt],regs_b:List[UInt], PC:UInt, IX:UInt, IY:UInt, IFF:UInt, IFF2:UInt, R:UInt, I:UInt) {
+  }
+}
+
+
+object TopTest23 extends App {
+  val bufferedSource = io.Source.fromFile("src/hex/test.lst")
+
+  var PC = 0x0000;
+
+  for (line <- bufferedSource.getLines) {
+    val comm = line.split("; ")
+    val cols = line.split(" ")
+    if(cols(0).matches("[0-9a-fA-F]{4}")) {
+      PC = Integer.parseInt(cols(0), 16)
+      for(e <- comm) {
+        if(e.toLowerCase.startsWith("expect")) {
+          for((ee, index) <- e.split("""\s+""").drop(1).zipWithIndex) {
+            print(PC, index, ee)
+          }
+          println
+//        println(e)
+        }
+      }
+//      if(cols(1).length>0)
+//        println(cols.length)
+//       println(cols(0))
+    }
+   /* 
+    for(c<-comm) {
+      println(c)
+    }
+    */
+    /*
+    for ( f<- cols) {
+    println(f)
+    }
+    */
+  }
 }
