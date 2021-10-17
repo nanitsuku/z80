@@ -1,0 +1,2 @@
+z80-asm -l test.asm test.obj > test.lst
+tail -c +11 test.obj| od  -Ax -v -w1 -tx1 | awk '{print "@" $0}' > test.hex
