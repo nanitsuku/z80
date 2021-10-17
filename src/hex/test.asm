@@ -99,7 +99,7 @@
         LD L,E          ; expect PC NC NC NC NC NC NC NC RE NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         LD L,H          ; expect PC NC NC NC NC NC NC NC RH NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         LD L,L          ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
-        LD L,(HL)       ; expect PC NC NC NC NC NC NC NC 53 NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        LD L,(HL)       ; expect PC NC NC NC NC NC NC NC 60 NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         LD L,A          ; expect PC NC NC NC NC NC NC NC FF NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 
         LD A,0FFH       ; expect PC FF NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
@@ -134,13 +134,19 @@
         LD (8404H),A    ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 
         LD A,(BC)       ; expect PC 45 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
-        LD A,(DE)       ; expect PC 46 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        LD A,(DE)       ; expect PC 35 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        LD A,(8707H)    ; expect PC 51 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         LD HL,(8606H)   ; expect PC NC NC NC NC NC NC 52 53 NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
-        LD A,(8707H)    ; expect 51 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 
         LD (HL),0F7H    ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 
-        LD SP,HL        ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        LD B,H          ; expect PC NC RH NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        LD C,L          ; expect PC NC NC RL NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        LD A,(BC)       ; expect PC F7 NC RL NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        LD SP,HL        ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC 5253 NC   NC   NC NC NC  NC
 
         HALT
 
@@ -154,6 +160,11 @@
         defb 45H
         defb 46H
         defb 47H
+
+        org 0x8202
+        defb 35H
+        defb 36H
+        defb 37H
 
         org 0x8606
         defb 53H
