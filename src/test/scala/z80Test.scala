@@ -13,9 +13,11 @@ import firrtl_interpreter.InterpretiveTester
 
 class HexTest extends FlatSpec with ChiselScalatestTester {
 //class HexTest extends ChiselFlatSpec {
+//  val filename = "src/hex/fetch.hex"
+  val filename = "src/hex/test.hex"
   "mycpu" should "work through hex" in {
-    test(new Top("src/hex/fetch.hex")).withAnnotations(Seq(VerilatorBackendAnnotation)) { c =>
-      while (!c.io.exit.peek().litToBoolean){
+    test(new Top(filename)).withAnnotations(Seq(VerilatorBackendAnnotation)) { c =>
+      while (!c.core.io.bus.HALT_.peek().litToBoolean){
         c.clock.step(1)
 //        println(s"${c.core.A.peek()}")
 //        println(s"${c.core.regfiles_front(0)}")
@@ -32,10 +34,10 @@ class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
 //          println(s"AAAA:${peekAt(c.core.regfiles_front, c.core.A_op.litValue().toInt)}")
 //          println(s"AAAA:${c.core.io.bus.IORQ_.toString()}")
 //          System.out.printf("%d\n", c.core.io.bus.IORQ_.peek())
-            poke(c.io.exit, 1)
+            poke(c.core.io.bus.HALT_, 1)
 //            println(s"${peek(c.clock)}")
 //            println(s"${peek(c.core.io.exit)}")
-            println(s"${peek(c.io.exit)}")
+            println(s"${peek(c.core.io.bus.HALT_)}")
 //          println(s"${peek(c.core.A).toInt}")
 //        System.out.println(peek(c.core.A))
 //        println(s"${peek(c.core.regfiles_front(7))}\n")

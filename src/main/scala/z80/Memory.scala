@@ -20,6 +20,7 @@ class ImemPortIo extends Bundle {
   val IORQ_ = Input(Bool())
   val M1_ = Input(Bool())
   val RFSH_ = Input(Bool())
+  val HALT_ = Input(Bool())
 }
 
 class DecoderIo extends Bundle {
