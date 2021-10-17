@@ -27,6 +27,7 @@ import java.math.MathContext
 import org.scalacheck.Prop
 import java.util.ArrayList
 import scala.collection.mutable.ListBuffer
+import scala.util.control.Breaks
 
 object ScalaFxHello extends JFXApp  {
   val tf = new TextField()
@@ -423,7 +424,7 @@ object TopTest22 extends App {
        () => new TopSupervisor(filename + ".hex")) {
         c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
-          System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2\n")
+          System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
               val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
 //              pc = peek(c.io.PC).U
               val sp = peek(c.io.SP).U
@@ -431,15 +432,17 @@ object TopTest22 extends App {
               val iy = peek(c.io.IY).U
               val r = peek(c.io.R).U
               val i = peek(c.io.I).U
+              val iff = 0.U //peek(c.io.IFF).U
+              val iff2 = 0.U //peek(c.io.IFF2).U
               /*
               val itt = if(first) {
                 first = false
                 unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
               }
               */
-               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
+               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff.toInt, iff2.toInt,  r.toInt, i.toInt)
 //                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
-
+              var pcc = pc.toInt
           while(peek(c.io.exit)==0) {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
@@ -450,6 +453,7 @@ object TopTest22 extends App {
               System.out.println(s"${c.top.core.A_op}\n")
 */
               pc = peek(c.io.PC).U
+              System.out.print("D ")
               System.out.print(f"$prev_pc%04X ")
 //:              System.out.print(s"${Integer.toString(peek(c.io.PC).toInt, 16)}%X ")
               regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
@@ -459,11 +463,21 @@ object TopTest22 extends App {
               System.out.print(f"$iy%04X ")
               System.out.print(f"$r%02X ")
               System.out.print(f"$i%02X ")
-
+              System.out.print(f"$iff%02X ")
+              System.out.print(f"$iff2%02X ")
+ 
               System.out.println()
-              val s = itt.next().asInstanceOf[Status]
+              var s:Status = itt.next().asInstanceOf[Status]
+              if (s.PC!=0 && s.invalid) {
+                s = itt.next().asInstanceOf[Status]
+              }
 
+              System.out.print("U ")
               s.print()
+
+              if (! s.check(regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()}, regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}, pc.toInt, ix.toInt, iy.toInt, iff.toInt, iff2.toInt, r.toInt, i.toInt)) {
+                println("error")
+              }
               cc = cc + 1
             }
             step(1)
@@ -494,26 +508,53 @@ object Status {
   val L_ = L+prime_offset;
   val F_ = F+prime_offset;
   val register_index = Map(
-    "RA"->0,"RB"->1,"RC"->2,"RD"->3,"RE"->4,"RH"->5,"RL"->6,"RF"->7,
+    "RA"->0,"RB"->1,"RC"->2,"RD"->3,"RE"->4,"RF"->5, "RH"->6,"RL"->7
   )
 }
 
-case class Status(pc:Integer, regs:Array[UInt]) {
+case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer) {
 //  var regfiles = Array[UInt]()
 //  var PC = 0x0000;
   var regfiles = regs
   var PC = pc
+  var SP = sp
+  var IX = ix
+  var IY = iy
+  var IFF = iff
+  var IFF2 = iff2
+  var R = r
+  var I = i
+  var invalid = false
 
   def print() {
     System.out.print(f"$PC%04X ")
     regfiles.map( {n => val dd = n.litValue; System.out.print(f"$dd%02X ")})
-    println
+    System.out.print(f"$SP%04X ")
+    System.out.print(f"$IX%04X ")
+    System.out.print(f"$IY%04X ")
+    System.out.print(f"$R%02X ")
+    System.out.print(f"$I%02X ")
+    System.out.print(f"$IFF%02X ")
+    System.out.print(f"$IFF2%02X ")
+   println
+  }
+
+  def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
+    for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
+      if ( s.litValue != d.litValue ) {
+      //  println(s,d)
+        return false
+        Breaks.break()
+      }
+//      println(s,d)
+    }
+    true 
   }
 }
 
 class UnitTest(filename:String) {
-  var prev_status:Status = new Status(0,Array[UInt]())
-  var expect_status:Status = new Status(0,Array[UInt]())
+  var prev_status:Status = new Status(0,Array[UInt](), 0, 0, 0, 0, 0, 0, 0)
+  var expect_status:Status = new Status(0,Array[UInt](),0, 0, 0, 0, 0, 0, 0)
 
   val bufferedSource = io.Source.fromFile(filename)
 
@@ -527,9 +568,11 @@ class UnitTest(filename:String) {
       val cols = line.split(" ")
       if(cols(0).matches("[0-9a-fA-F]{4}")) {
         expect_status.PC = Integer.parseInt(cols(0), 16)
+        expect_status.invalid = true
         for(e <- comm) {
           if(e.toLowerCase.startsWith("expect")) {
 //            print(e)
+            expect_status.invalid = false
             for((ee, index) <- e.split("""\s+""").drop(1).zipWithIndex) {
               if(index >= 1 && index <= 16) {
                 expect_status.regfiles(index-1) = 
@@ -543,6 +586,13 @@ class UnitTest(filename:String) {
               }
             }
 //            println
+
+/* 
+            prev_status = expect_status
+            expect_status
+          } else {
+            false
+            */
           }
 //          expect_status.print()
 //          println(expects.length.toString())
@@ -550,23 +600,40 @@ class UnitTest(filename:String) {
         }
 //        expect_status.print()
 //        expects :+ expect_status
-        expects += expect_status.copy()
-        prev_status = expect_status
-        expect_status
+//        expects += expect_status.copy()
+//        prev_status = expect_status
+/*
+        expect_status 
+      } else {
+        false
+        */
       }
+      expect_status 
     }
   }
 
-  def initialize(regs_f:List[UInt],regs_b:List[UInt], PC:UInt, IX:UInt, IY:UInt, IFF:UInt, IFF2:UInt, R:UInt, I:UInt): Iterator[Any] = {
+  def initialize(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Iterator[Any] = {
     prev_status.regfiles =  Array.concat(regs_f.toArray, regs_b.toArray)
+    prev_status.SP = sp 
+    prev_status.IX = ix
+    prev_status.IY = iy
+    prev_status.IFF = iff
+    prev_status.IFF2 = iff2
+    prev_status.R = r
+    prev_status.I = i
+
     expect_status = prev_status
     initialize2
   }
 
-  def check(regs_f:List[UInt],regs_b:List[UInt], PC:UInt, IX:UInt, IY:UInt, IFF:UInt, IFF2:UInt, R:UInt, I:UInt) {
+  def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
+    for ( (s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
+      if ( s != d ) Breaks.break()
+      false
+    }
+    true 
   }
 }
-
 
 object TopTest23 extends App {
   val bufferedSource = io.Source.fromFile("src/hex/test.lst")
