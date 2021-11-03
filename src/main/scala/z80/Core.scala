@@ -172,7 +172,7 @@ class Core extends Module {
   
     alu16.io.input_register := input
     alu16.io.offset := Mux(instruction(3) === 0.U, 1.S, -1.S)
-   switch(machine_state) {
+    switch(machine_state) {
       is(M1_state) {
         input := register
         machine_state_next := MX_state_8
@@ -522,9 +522,10 @@ class Core extends Module {
 //                rl := io.bus.data
 //                regfiles_front(rlp) := opcodes(opcode_index)
                 regfiles_front(rlp) := opcodes(opcode_index)
-                printf(p"${rhp} ${rlp} ${RP} ${L_op}\n")
+//                printf(p"${rhp} ${rlp} ${RP} ${L_op}\n")
 //                  mem_refer_addr := SP
                   opcode_index := opcode_index + 1.U
+                  SP := SP + 1.U
 //                  mem_refer_addr := SP + 1.U
 when(fallingedge(clock.asBool())) {
 
@@ -1222,18 +1223,26 @@ def ld_rpp_a(opcode:UInt) {
         machine_state_next := M1_state
         opcode_index := 0.U
       } .elsewhen((opcode_index === 3.U || opcode_index === 4.U) && ~opcode(4)) {
+        when(m1_t_cycle === 2.U) {
         switch(opcode_index) {
           is(3.U) {
             io.bus.data1 := L
+//            when(risingedge(clock.asBool()) && m1_t_cycle === 3.U) {
+//            when(m1_t_cycle === 3.U) {
             mem_refer_addr := mem_refer_addr + 1.U
             opcode_index := opcode_index + 1.U
+//            }
           }
           is(4.U) {
             io.bus.data1 := H 
+//            when(risingedge(clock.asBool()) && m1_t_cycle === 3.U) {
+//            when(m1_t_cycle === 3.U) {
             machine_state_next := M1_state
             opcode_index := 0.U
+//            }
           }
         }
+      }
       }/* .otherwise {
         opcode_index := opcode_index + 1.U
       }*/
