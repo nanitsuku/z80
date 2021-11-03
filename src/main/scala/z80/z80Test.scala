@@ -405,7 +405,6 @@ object TopTest22 extends App {
 //    val backend = "vcs"
 //    val backend = "vsim"
 
-    val unit_test = new UnitTest("src/hex/test.lst")
     val backend = "verilator"
     var prev_state = -1
     var prev_t_cycle = -1
@@ -414,6 +413,7 @@ object TopTest22 extends App {
 //    val filename =  "src/hex/ex.hex"
     val filename_default =  "src/hex/test"
     val filename = if (args.length>0) args(0) else filename_default
+    val unit_test = new UnitTest(filename + ".lst")
     val driverTestDir = "hogehoge"
     var first = true
     var prev_address = 0
