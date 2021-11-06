@@ -102,6 +102,11 @@ class Core extends Module {
   val HL_op = "b10".U
   val SP_op = "b11".U
  
+  def reset_func() {
+    regfiles_front(A_op) := 0xFF.U;
+    regfiles_front(F_op) := 0xFF.U;
+  }
+
   def ld_r_ix_iy_d(instruction:UInt) {
     // M1 -> M1 -> M2 -> MX(5) -> M2
     switch(machine_state) {
@@ -1599,6 +1604,10 @@ def ld_rp_nn(opcode:UInt) {
   def risingedge(x: Bool) = x && !RegNext(x)
 
   val dummy_cycle = RegInit(0.U)
+
+  when(reset.asBool()) {
+    reset_func()
+  }
 
   when(!reset_hold) {
 
