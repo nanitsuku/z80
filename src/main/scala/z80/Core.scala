@@ -723,8 +723,10 @@ when(fallingedge(clock.asBool())) {
             }
           }
 //        PC_next := PC_next + 1.U
+          when(opcode(3,0) =/= "b110".U) {
           regfiles_front(A_op) := alu.io.output_C
           regfiles_front(F_op) := alu.io.flag
+          }
         }
       }
       is(M2_state) {
