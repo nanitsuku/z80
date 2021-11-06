@@ -101,7 +101,7 @@ class Core extends Module {
   val DE_op = "b01".U
   val HL_op = "b10".U
   val SP_op = "b11".U
- 
+
   def reset_func() {
     regfiles_front(A_op) := 0xFF.U;
     regfiles_front(F_op) := 0xFF.U;
@@ -729,8 +729,8 @@ when(fallingedge(clock.asBool())) {
           }
 //        PC_next := PC_next + 1.U
           when(opcode(3,0) =/= "b110".U) {
-          regfiles_front(A_op) := alu.io.output_C
-          regfiles_front(F_op) := alu.io.flag
+            regfiles_front(A_op) := alu.io.output_C
+            regfiles_front(F_op) := alu.io.flag
           }
         }
       }
