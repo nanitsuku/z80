@@ -836,7 +836,7 @@ when(fallingedge(clock.asBool())) {
               when(cond === 0.B) {
                 PC_next := PC_next + 1.U
               } .otherwise {
-                PC_next := Cat(opcodes(1),opcodes(2))
+                PC_next := Cat(opcodes(2),opcodes(1))
               }
 
 //              PC_next := Cat(opcodes(1),opcodes(2))
