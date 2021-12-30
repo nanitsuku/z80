@@ -270,7 +270,7 @@ object ALUTest extends App {
 
 }
 
-object TopTest extends App {
+object TopTestObsolete extends App {
 //    iotesters.Driver.execute(args, () => new Top()) {
 //    val backend = "firrtl"
 //    val backend = "treadle"
@@ -397,7 +397,7 @@ class TopSupervisor(filename:String) extends Module {
 
 }
 
-object TopTest22 extends App {
+object TopTest extends App {
 //    iotesters.Driver.execute(args, () => new Top()) {
 //    val backend = "firrtl"
 //    val backend = "treadle"
@@ -424,7 +424,7 @@ object TopTest22 extends App {
        () => new TopSupervisor(filename + ".hex")) {
         c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
-          System.out.println(" PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
+          System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
               val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
 //              pc = peek(c.io.PC).U
               var sp = peek(c.io.SP).U
@@ -447,7 +447,7 @@ object TopTest22 extends App {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
 
-            if (machine_state == 1 &&  (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 && t_cycle == 1)))  {
+            if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
 //              System.out.println(s"${peek(c.io.reg(c.top.core.A_op.litValue().toInt))}\n")
 /*
               System.out.println(s"${c.top.core.A_op}\n")
@@ -571,7 +571,7 @@ class UnitTest(filename:String) {
   val expects:ListBuffer[Status] = ListBuffer()
 
   def initialize2 = {
-    for (line <- bufferedSource.getLines()) yield {
+    for (line <- bufferedSource.getLines() if(line.contains("expect"))) yield {
       val comm = line.split("; ")
       val cols = line.split(" ")
       if (line.startsWith(";")) expect_status.invalid = true
