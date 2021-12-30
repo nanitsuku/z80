@@ -649,7 +649,7 @@ when(fallingedge(clock.asBool())) {
 //    alu.io.input_A := src_reg
     alu.io.input_B := regfiles_front(opcodes(0)(2,0))
 //    alu.io.input_carry := RegInit(C_flag)
-    alu.io.input_carry := C_flag
+    alu.io.input_carry := Mux(opcode(7) === "b1".U, C_flag, 0.U)
     alu.io.calc_type := Mux(opcode(7,6) === "b11".U,
                      opcode & "b10111000".U(8.W),
                      opcode & "b11111000".U(8.W))
@@ -672,6 +672,7 @@ when(fallingedge(clock.asBool())) {
                 // add/adc  a,(HL)
                 mem_refer_addr := Cat(H,L)
                 machine_state_next := M2_state
+                alu.io.input_B := io.bus.data
                 opcode_index := opcode_index + 1.U
               }
             }

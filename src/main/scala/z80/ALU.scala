@@ -90,7 +90,7 @@ class ALU extends Module {
     }
     is(and_xor_op) {
       temp := Mux(io.calc_type(3), io.input_A ^ io.input_B , io.input_A & io.input_B) 
-      H := 1.U
+      H := Mux(io.calc_type === and_op, 1.U, 0.U)
       PV := getParity(temp)
       N := 0.U
       C := 0.U
@@ -100,7 +100,7 @@ class ALU extends Module {
       switch(io.calc_type) {
         is(or_op) {
           temp := io.input_A | io.input_B
-          H := 1.U
+          H := 0.U
           PV := getParity(temp)
           N := 0.U
           C := 0.U
@@ -110,7 +110,8 @@ class ALU extends Module {
           temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B)
           temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0)
           H := temph(4)
-          PV :=(io.input_A(7) | io.input_B(7))^temp(7)
+//          PV := (io.input_A(7) | io.input_B(7))^temp(7)
+          PV := (io.input_A(7) ^ io.input_B(7)) & (io.input_A(7) ^ temp(7))
           N := 1.B
           C := temp(8)
           io.output_C := io.input_A  // no change
