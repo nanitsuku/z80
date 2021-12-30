@@ -343,3 +343,6 @@ hs_err_pid*
 .metals/
 .bloop/
 project/metals.sbt
+
+#
+hogehoge/*
