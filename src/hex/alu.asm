@@ -95,10 +95,23 @@
         CP (HL)         ; expect PC NC NC NC NC NC 2A NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         CP A            ; expect PC NC NC NC NC NC 6A NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         
+        LD A,055H       ; expect PC 55 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        AND 055H        ; expect PC 55 NC NC NC NC 3C NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        AND 0AAH        ; expect PC 00 NC NC NC NC 7C NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+ 
+        LD A,055H       ; expect PC 55 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        OR 0AAH         ; expect PC FF NC NC NC NC AC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         
-        
-        
-        
+        LD A,055H       ; expect PC 55 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        XOR 0AAH        ; expect PC FF NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        XOR 0FFH        ; expect PC 00 NC NC NC NC 6C NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        LD A,055H       ; expect PC 55 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        CP 0AAH         ; expect PC NC NC NC NC NC BF NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        CP 00H          ; expect PC NC NC NC NC NC 2A NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        CP 055H         ; expect PC NC NC NC NC NC 6A NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+
         
         
         HALT
