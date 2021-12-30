@@ -266,6 +266,7 @@ class Core extends Module {
             io.bus.data1 := temp
             mem_refer_addr := PC_next
             opcode_index := 0.U
+            regfiles_front(F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(F_op) & "b00000001".U)
           }
         }
       }
@@ -274,6 +275,8 @@ class Core extends Module {
       // M1(4)
       when(m1_t_cycle===3.U) {
         regfiles_front(opcodes(0)(5,3)) := alu.io.output_C
+//        regfiles_front(F_op) := ((regfiles_front(F_op) & "b1".U) | (alu.io.flag  & !"b1".U))
+        regfiles_front(F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(F_op) & "b00000001".U)
       }
     }
   }
