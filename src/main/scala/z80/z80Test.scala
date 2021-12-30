@@ -346,6 +346,8 @@ class TopSupervisor(filename:String) extends Module {
   val IY = Output(UInt(16.W))
   val R = Output(UInt(8.W))
   val I = Output(UInt(8.W))
+  val IFF1 = Output(UInt(8.W))
+  val IFF2 = Output(UInt(8.W))
  })
 
 
@@ -376,6 +378,9 @@ class TopSupervisor(filename:String) extends Module {
  io.R := WireDefault(0.U(8.W))
  io.I := WireDefault(0.U(8.W))
 
+ io.IFF1 := WireDefault(0.U(8.W))
+ io.IFF2 := WireDefault(0.U(8.W))
+
 // BoringUtils.bore(top.core.A, Seq(io.A))
  BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
  BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
@@ -388,6 +393,9 @@ class TopSupervisor(filename:String) extends Module {
  
  BoringUtils.bore(top.core.R, Seq(io.R))
  BoringUtils.bore(top.core.I, Seq(io.I))
+ 
+ BoringUtils.bore(top.core.IFF1, Seq(io.IFF1))
+ BoringUtils.bore(top.core.IFF2, Seq(io.IFF2))
 // Boring
 
 // io.A := A
@@ -432,7 +440,7 @@ object TopTest extends App {
               var iy = peek(c.io.IY).U
               var r = peek(c.io.R).U
               var i = peek(c.io.I).U
-              var iff = 0.U //peek(c.io.IFF).U
+              var iff1 = 0.U //peek(c.io.IFF).U
               var iff2 = 0.U //peek(c.io.IFF2).U
               /*
               val itt = if(first) {
@@ -440,7 +448,7 @@ object TopTest extends App {
                 unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
               }
               */
-               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff.toInt, iff2.toInt,  r.toInt, i.toInt)
+               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
 //                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
               var pcc = pc.toInt
           while(peek(c.io.halt_)==1) {
@@ -458,8 +466,8 @@ object TopTest extends App {
               iy = peek(c.io.IY).U
               r = peek(c.io.R).U
               i = peek(c.io.I).U
-              iff = 0.U //peek(c.io.IFF).U
-              iff2 = 0.U //peek(c.io.IFF2).U
+              iff1 = peek(c.io.IFF1).U
+              iff2 = peek(c.io.IFF2).U
               System.out.print("D ")
               System.out.print(f"$prev_pc%04X ")
 //:              System.out.print(s"${Integer.toString(peek(c.io.PC).toInt, 16)}%X ")
@@ -470,7 +478,7 @@ object TopTest extends App {
               System.out.print(f"$iy%04X ")
               System.out.print(f"$r%02X ")
               System.out.print(f"$i%02X ")
-              System.out.print(f"$iff%02X ")
+              System.out.print(f"$iff1%02X ")
               System.out.print(f"$iff2%02X ")
  
               System.out.println()
@@ -482,7 +490,7 @@ object TopTest extends App {
               System.out.print("U ")
               s.print()
 
-              if (! s.check(regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()}, regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}, pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff.toInt, iff2.toInt, r.toInt, i.toInt)) {
+              if (! s.check(regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()}, regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}, pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt, r.toInt, i.toInt)) {
                 println("error")
               }
               cc = cc + 1
@@ -519,7 +527,7 @@ object Status {
   )
 }
 
-case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer) {
+case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integer, iff1:Integer, iff2:Integer, r:Integer, i:Integer) {
 //  var regfiles = Array[UInt]()
 //  var PC = 0x0000;
   var regfiles = regs
@@ -527,7 +535,7 @@ case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integ
   var SP = sp
   var IX = ix
   var IY = iy
-  var IFF = iff
+  var IFF1 = iff1
   var IFF2 = iff2
   var R = r
   var I = i
@@ -541,12 +549,12 @@ case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integ
     System.out.print(f"$IY%04X ")
     System.out.print(f"$R%02X ")
     System.out.print(f"$I%02X ")
-    System.out.print(f"$IFF%02X ")
+    System.out.print(f"$IFF1%02X ")
     System.out.print(f"$IFF2%02X ")
    println
   }
 
-  def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
+  def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff1:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
     for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
       if ( s.litValue != d.litValue ) {
       //  println(s,d)
@@ -601,7 +609,23 @@ class UnitTest(filename:String) {
                       Integer.parseInt(ee, 16)
                     }
                 }
-                  /*
+                if (index == 22) {
+                  expect_status.IFF1=
+                    if (ee == "NC") {
+                       prev_status.IFF1
+                    } else {
+                      Integer.parseInt(ee, 8)
+                    }
+                }
+                if (index == 23) {
+                  expect_status.IFF2=
+                    if (ee == "NC") {
+                       prev_status.IFF2
+                    } else {
+                      Integer.parseInt(ee, 8)
+                    }
+                }
+                 /*
                 index match {
                   case 17 =>  expect_status.SP = Integer.parseInt(ee, 16)
                   case 18 =>
@@ -647,12 +671,12 @@ class UnitTest(filename:String) {
     }
   }
 
-  def initialize(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Iterator[Any] = {
+  def initialize(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff1:Integer, iff2:Integer, r:Integer, i:Integer): Iterator[Any] = {
     prev_status.regfiles =  Array.concat(regs_f.toArray, regs_b.toArray)
     prev_status.SP = sp 
     prev_status.IX = ix
     prev_status.IY = iy
-    prev_status.IFF = iff
+    prev_status.IFF1 = iff1
     prev_status.IFF2 = iff2
     prev_status.R = r
     prev_status.I = i

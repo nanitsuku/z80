@@ -30,7 +30,7 @@ class Core extends Module {
   val machine_state = RegInit(M1_state)
   val machine_state_next = RegInit(M1_state)
 
-  val IFF = RegInit(0.B)
+  val IFF1 = RegInit(0.B)
   val IFF2 = RegInit(0.B)
 
   val mem_refer_addr = RegInit(0.U(16.W))
@@ -866,10 +866,6 @@ when(fallingedge(clock.asBool())) {
     opcode_index := 0.U
   }
   
-  def iff(opcode:UInt) {
-    IFF := opcodes(0)(3)
-  }
-  
   def ret(opcode:UInt) {
     // RET M1(4) M2(3) M2(3) 
     // RET no cond  M1(4) MX(1)
@@ -1417,6 +1413,11 @@ def ld_rp_nn(opcode:UInt) {
   }
 }
 
+def ei_di(opcode:UInt) {
+  IFF1 := opcode(3) 
+  IFF2 := opcode(3) 
+}
+
   def add16(opcode:UInt) {
 
   }
@@ -1563,7 +1564,7 @@ def ld_rp_nn(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b11??0?01")) {/*printf("inout\n");*/  push_pop(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???111")) {/*printf("inout\n");*/  rst(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b1101?011")) {/*printf("inout\n");*/  in_out(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b1111?011")) {/*printf("DI/EI\n");*/  iff(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b1111?011")) {/*printf("DI/EI\n");*/  ei_di(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11001101") || opcodes(0) === BitPat("b11???100")) {/*printf("CALL\n");*/  call(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11???00?")) {/*printf("RET\n");*/  ret(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00???011")) {/*printf("inc/dec16\n");*/  inc_dec_16(opcodes(0));}
