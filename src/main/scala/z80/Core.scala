@@ -1335,7 +1335,6 @@ def jr(opcode:UInt) {
           opcode_index := opcode_index + 1.U
           mem_refer_addr := PC_next
           machine_state_next := M2_state
-          PC_next := PC_next + 1.U
         }
       } 
     }
@@ -1347,16 +1346,18 @@ def jr(opcode:UInt) {
             (opcode === 0x10.U) -> 6.U,
           )
         )
-
       machine_state_next := MX_state_8
-//      PC_next := PC_next + 1.U
+      PC_next := PC_next + 1.U
     }
     is(MX_state_8) {
-      when(m1_t_cycle===4.U) {
+      when((opcode===0x10.U) && (m1_t_cycle === 1.U)) {
+        regfiles_front(B_op) := regfiles_front(B_op) - 1.U
+      }
+      when(m1_t_cycle===(dummy_cycle-1.U)) {
         machine_state_next := M1_state
         opcode_index := 0.U
-        when(cond) {
-          PC_next := PC_next + Cat(Fill(8, opcodes(1)(7)),opcodes(1))
+        when(cond || (opcode===0x10.U && (regfiles_front(B_op))=/=0.U)) {
+          PC_next := (PC_next.asSInt + opcodes(1).asSInt).asUInt
         }
       }
     }
@@ -1540,22 +1541,22 @@ def ld_rp_nn(opcode:UInt) {
   var to_be_read = RegInit(0.U(8.W))
   def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
-    when (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
-
+    when      (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
+    .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("ex af aftp\n");*/  ex_af_afp(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00?1?000")||opcodes(0) === BitPat("b0010?000")) {/*printf("LD rp,nn\n");*/  jr(opcodes(0));}
+    
+    .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11111001")) {/*printf("JP nn");*/  ld_sp_hl(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b11101001")) {/*printf("JP nn");*/  jp(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11101011")) {/*printf("ex_de_hl\n");*/  ex_de_hl(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11100011")) {/*printf("exx\n");*/  ex_spa_hl(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("ex af aftp\n");*/  ex_af_afp(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b00??1010")) {/*printf("LD rp,nn\n");*/  ld_rr_rp_nn(opcodes(0));}
 
 //    .elsewhen (opcodes(0) === BitPat("b0010?010")) {/*printf("LD rp,nn\n");*/  ld_hl_nnp(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b0011?111")) {/*printf("LD rp,nn\n");*/  cf(opcodes(0));}
-    .elsewhen (opcodes(0) === BitPat("b00???000")) {/*printf("LD rp,nn\n");*/  jr(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00??0010")) {/*printf("LD rp,nn\n");*/  ld_rpp_a(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00??0001")) {/*printf("LD rp,nn\n");*/  ld_rp_nn(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b000??111")) {/*printf("inout\n");*/  shift_rotate(opcodes(0));}
@@ -1737,6 +1738,7 @@ def ld_rp_nn(opcode:UInt) {
         } .otherwise {
           m1_t_cycle := 1.U
           machine_state := machine_state_next
+          PC := PC_next
         }
         decode()
       }
