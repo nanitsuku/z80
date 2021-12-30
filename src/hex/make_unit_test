@@ -1,4 +1,4 @@
-files="ld alu16 alu push_pop incdec jp"
+files="ld alu16 alu push_pop incdec jp ei_di"
 for f in ${files};do
   z80-asm -l ${f}.asm ${f}.obj > ${f}.lst
   tail -c +11 ${f}.obj| od  -Ax -v -w1 -tx1 | awk '{print "@" $0}' > ${f}.hex
