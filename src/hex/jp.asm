@@ -102,6 +102,16 @@ MMMM:
         org MMMM+20H
 NNNN:
         NOP             ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        LD HL,0ABCDH    ; expect PC NC NC NC NC NC NC AB CD NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        jp (HL)         ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+        org 0ABCDH
+        NOP             ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+        HALT            ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
+
+
         HALT            ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 ;        jr aaa          ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
 
