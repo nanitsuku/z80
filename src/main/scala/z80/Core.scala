@@ -1131,37 +1131,54 @@ def rst(opcode:UInt) {
   switch(machine_state) {
     is(M1_state) {
        when(m1_t_cycle===2.U) {
-         dummy_cycle := 0.U
+         dummy_cycle := 2.U
          machine_state_next := MX_state_8
-         opcode_index := opcode_index + 1.U
-       }     
-    }
+//         opcode_index := opcode_index + 1.U
+       }
+       when(m1_t_cycle===4.U) {
+         m1_t_cycle := 1.U
+       }
+       PC_next := PC
+     }
     is(MX_state_8) {
-      when(fallingedge(clock.asBool())) {
+      when(m1_t_cycle===dummy_cycle && fallingedge(clock.asBool())) {
       machine_state_next := M3_state
       machine_state:= M3_state
-      mem_refer_addr := SP
+      mem_refer_addr := SP -1.U
+      SP := SP - 1.U
+      opcode_index := opcode_index + 1.U
+      m1_t_cycle := 1.U
+      PC_next := PC + 1.U
+      io.bus.data1 := PC_next(7,0)
+      } .otherwise {
+        m1_t_cycle := m1_t_cycle + 1.U
       }
    }
     is(M3_state) {
       switch(opcode_index) {
         is(1.U) {
-          io.bus.data1 := PC(15,8)
-          when(m1_t_cycle===3.U) {
+//          io.bus.data1 := (PC+1.U)(15,8)
+          io.bus.data1 := PC_next(7,0)
+          when(m1_t_cycle===2.U) {
             SP := SP - 1.U
             opcode_index := opcode_index + 1.U
+//            io.bus.data1 := (PC+1.U)(7,0)
+          } .otherwise {
+//          io.bus.data1 := (PC+1.U)(7,0)
           }
         }
         is(2.U) {
-          io.bus.data1 := PC(7,0)
-          when(m1_t_cycle===3.U) {
-            io.bus.data1 := PC(7,0)
-            mem_refer_addr := SP
-            SP := SP - 1.U
+        io.bus.data1 := PC_next(15,8)
+          mem_refer_addr := SP
+          when(m1_t_cycle===2.U) {
+//            io.bus.data1 := PC(7,0)
+//            mem_refer_addr := SP
+//            SP := SP - 1.U
             machine_state_next := M1_state
             PC_next := adr
             opcode_index := 0.U
           }
+//        io.bus.data1 := (PC+1.U)(7,0)
         }
       }
     }
