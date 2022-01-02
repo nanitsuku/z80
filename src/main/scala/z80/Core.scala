@@ -1038,68 +1038,83 @@ def call(opcode:UInt) {
       }
     }
     is(M2_state) {
-//      PC_next := PC_next + 1.U
-      switch(m1_t_cycle) {
+      PC_next := PC_next + 1.U
+//      switch(m1_t_cycle) {
         /*
         is(1.U) {
         }
         */
-        is(2.U) {
-          mem_refer_addr := PC_next + 1.U
-              PC_next := PC_next + 1.U
-          opcode_index := opcode_index + 1.U
-          when(opcode_index===2.U) {
-            when(cond === 1.U) {
-              machine_state_next := MX_state_8
-            } .otherwise {
-              machine_state_next := M1_state
-              opcode_index := 0.U
+//        is(2.U) {
+          switch(opcode_index) {
+            is(1.U) {
+              opcode_index := opcode_index + 1.U
+              mem_refer_addr := PC_next + 1.U
             }
-//            mem_refer_addr90 := 
-            dummy_cycle := 1.U
-//            PC_next := PC_next + 1.U
+            is(2.U) {
+              mem_refer_addr := PC_next
+              when(cond === 1.U) {
+                machine_state_next := MX_state_8
+                PC_next := PC_next
+              } .otherwise {
+                machine_state_next := M1_state
+                opcode_index := 0.U
+//                PC_next := PC_next + 2.U
+              }
+  //            mem_refer_addr90 := 
+              dummy_cycle := 1.U
+            }
           }
-        }
+//       }
         /*
         is(3.U) {
         }
         */
-      }
+ //     }
     }
     is(MX_state_8) {
+      // TODO this cycle must be 1 clock but now 2clocks
+      machine_state_next := M3_state
       alu16.io.input_register := SP
-     switch(m1_t_cycle) {
-        is(1.U) {
-          machine_state_next := M3_state
-        }
-      }
+      alu16.io.offset := -1.S
+//      switch(m1_t_cycle) {
+//        is(1.U) {
+          mem_refer_addr := alu16.io.output
+          io.bus.data1 := (PC+1.U)(7,0)
+//          opcode_index := opcode_index + 1.U
+          opcode_index := 3.U
+//        }
+//      }
     }
     is(M3_state) {
-      alu16.io.input_register := SP
-             mem_refer_addr := alu16.io.output
-      when(m1_t_cycle===2.U) {
+//      alu16.io.input_register := SP
+//      mem_refer_addr := alu16.io.output
+//      when(m1_t_cycle===2.U) {
+        alu16.io.offset := -1.S
         switch(opcode_index) {
           is(3.U) {
-      alu16.io.input_register := SP
-      alu16.io.offset := -0.S
-             mem_refer_addr := alu16.io.output
+            alu16.io.input_register := SP
+            mem_refer_addr := alu16.io.output
+            when(m1_t_cycle===3.U) {
             opcode_index := opcode_index + 1.U
-
-           io.bus.data1 := PC(15,8)
+            alu16.io.offset := -2.S
+            }
+            io.bus.data1 := (PC+1.U)(7,0)
+//            io.bus.data1 := (PC+1.U)(15,8)
           }
           is(4.U) {
-      alu16.io.input_register := SP
+            alu16.io.input_register := SP
 //      alu16.io.offset := -1.S
-             alu16.io.offset := -1.S
+            alu16.io.offset := -2.S
+            mem_refer_addr := alu16.io.output
             machine_state_next := M1_state
             opcode_index := 0.U
-           io.bus.data1 := PC(7,0)
+            io.bus.data1 := (PC+1.U)(15,8)
             SP := alu16.io.output
             PC_next := Cat(opcodes(2),opcodes(1))
           }
         }
       }
-    }
+//    }
   }
 }
 
@@ -1734,12 +1749,16 @@ def ei_di(opcode:UInt) {
         }
       }
       is(MX_state_8) {
+//        decode()
         when(m1_t_cycle < dummy_cycle) {
           m1_t_cycle := m1_t_cycle + 1.U
         } .otherwise {
+//          when(fallingedge(clock.asBool())) {
+//          when(risingedge(clock.asBool())) {
           m1_t_cycle := 1.U
           machine_state := machine_state_next
           PC := PC_next
+ //         }
         }
         decode()
       }
