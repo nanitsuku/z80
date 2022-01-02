@@ -1,4 +1,5 @@
 ;                       ;        PC A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L' SP   IX   IY   R  I  IFF IFF2
+        ;               ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         NOP             ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
         LD SP,0102H     ; expect PC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC 0102 NC   NC   NC NC NC  NC
         LD B,12H        ; expect PC NC 12 NC NC NC NC NC NC NC NC NC NC NC NC NC NC NC   NC   NC   NC NC NC  NC
