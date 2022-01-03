@@ -1118,6 +1118,56 @@ def call(opcode:UInt) {
   }
 }
 
+def add16(opcode:UInt) {
+  var result = RegInit(0.U(16.W))
+  var F_ = RegInit(0.U(8.W))
+
+  switch(machine_state) {
+    is(M1_state) {
+      when(m1_t_cycle===3.U) {
+         machine_state_next := MX_state_8
+         dummy_cycle := 8.U
+  val to_be_added = 
+    MuxCase(0x0000.U,
+      Array(
+        (opcode(5,4) === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
+        (opcode(5,4) === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
+        (opcode(5,4) === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
+        (opcode(5,4) === SP_op) -> SP,
+      )
+    )
+
+  val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
+  val HL_S_ = ( HL_ & 0x0FFF.U)
+
+  val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
+
+  val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
+  val added_s = HL_S_ + to_be_added_S_
+
+//  val F_ = (regfiles_front(F_op) & "0b11101100".U)// + (added_s(12) << 1) + added(16)
+  result := added(15,0)
+  F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
+
+       } .elsewhen(m1_t_cycle===4.U) {
+         m1_t_cycle := 1.U 
+      }
+    }
+    is(MX_state_8) {
+      when(m1_t_cycle<(dummy_cycle-1.U)) {
+        m1_t_cycle := m1_t_cycle + 1.U
+     } .elsewhen(m1_t_cycle<dummy_cycle) {
+        machine_state_next := M1_state
+        regfiles_front(H_op) := result(15,8)
+        regfiles_front(L_op) := result(7,0)
+        regfiles_front(F_op) := F_
+     } .otherwise {
+        m1_t_cycle := 1.U
+     }
+    }
+  }
+}
+
 def daa(opcode:UInt) {
   val temp = RegInit(regfiles_front(A_op)(8.U))
 
@@ -1450,10 +1500,6 @@ def ei_di(opcode:UInt) {
   IFF2 := opcode(3) 
 }
 
-  def add16(opcode:UInt) {
-
-  }
-
   def exx(opcode:UInt) {
     val regfiles_tmp = Reg(Vec(8, UInt(8.W)))
 
@@ -1577,6 +1623,8 @@ def ei_di(opcode:UInt) {
     when      (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("ex af aftp\n");*/  ex_af_afp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b00?1?000")||opcodes(0) === BitPat("b0010?000")) {/*printf("LD rp,nn\n");*/  jr(opcodes(0));}
+
+    .elsewhen (opcodes(0) === BitPat("b00??1001")) {/*printf("add hl,rp\n");*/  add16(opcodes(0));}
     
     .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11111001")) {/*printf("JP nn");*/  ld_sp_hl(opcodes(0));}
