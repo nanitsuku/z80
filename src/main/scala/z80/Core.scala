@@ -1170,7 +1170,50 @@ def add16(opcode:UInt) {
 
 def daa(opcode:UInt) {
   val temp = RegInit(regfiles_front(A_op)(8.U))
+  val AA = regfiles_front(A_op)
+  val FF = regfiles_front(F_op)
 
+  val sss = Cat(FF(1),FF(0),FF(4))
+
+
+  var to_be_added = 0.U
+
+  when(AA(7,4)>9.U) {
+    // A-F
+  } .elsewhen(AA(7,4)===9.U) {
+    // 9
+
+  } .otherwise {
+    // 0-8
+
+  }
+
+  switch(sss) {
+    is("b000".U) {
+    }
+    is("b001".U) {
+
+    }
+    is("b010".U) {
+
+    }
+    is("b011".U) {
+
+    }
+
+    is("b100".U) {
+
+    }
+    is("b101".U) {
+
+    }
+    is("b110".U) {
+
+    }
+    is("b111".U) {
+
+    }
+  }
 }
 
 def rst(opcode:UInt) {
@@ -1613,6 +1656,50 @@ def ei_di(opcode:UInt) {
     }
   }
 
+  def shift(opcode:UInt) {
+    when(m1_t_cycle===3.U) {
+      switch(opcode(3,0)) {
+        is(0x7.U) {
+          // shift left
+          val AA = regfiles_front(A_op)
+          regfiles_front(A_op) := Cat(AA(6,0),Mux(opcode(4),F(0),AA(7)))
+          regfiles_front(F_op) := Cat(F(7,1),AA(7))
+        }
+        is(0xF.U) {
+          // shift right
+          val AA = regfiles_front(A_op)
+          regfiles_front(A_op) := Cat(Mux(opcode(4),F(0),AA(0)),AA(7,1))
+          regfiles_front(F_op) := Cat(F(7,1),AA(0))
+        }
+      }
+    }
+  }
+
+  def cpl(opcode:UInt) {
+    when(m1_t_cycle===3.U) {
+      val FF = regfiles_front(F_op)
+      val AA = regfiles_front(A_op)
+  
+      regfiles_front(A_op) := (~AA)
+      regfiles_front(F_op) := ( FF | 0x12.U )
+    }
+  }
+
+  def scf_ccf(opcode:UInt) {
+    when(m1_t_cycle===3.U) {
+      val FF = regfiles_front(F_op)
+      switch(opcode) {
+        is(0x37.U) {
+          // scf
+          regfiles_front(F_op) := Cat(FF(7,5),0.B,FF(3,2),0.B,1.B)
+        }
+        is(0x3F.U) {
+          // ccf
+          regfiles_front(F_op) := Cat(FF(7,5),FF(0),FF(3,2),0.B,~FF(0))
+        }
+      }
+    }
+  }
 
   val opcodes = Mem(8, UInt(8.W))
   val opcode_index = RegInit(0.U(8.W))
@@ -1626,6 +1713,13 @@ def ei_di(opcode:UInt) {
 
     .elsewhen (opcodes(0) === BitPat("b00??1001")) {/*printf("add hl,rp\n");*/  add16(opcodes(0));}
     
+    .elsewhen (opcodes(0) === BitPat("b000??111")) {/*printf("shift\n");*/  shift(opcodes(0));}
+
+    .elsewhen (opcodes(0) === BitPat("b00100111")) {/*printf("daa\n");*/  daa(opcodes(0));}
+    .elsewhen (opcodes(0) === BitPat("b00101111")) {/*printf("cpl\n");*/  cpl(opcodes(0));}
+
+    .elsewhen (opcodes(0) === BitPat("b0011?111")) {/*printf("scf ccf\n");*/  scf_ccf(opcodes(0));}
+
     .elsewhen (opcodes(0) === BitPat("b11011001")) {/*printf("exx\n");*/  exx(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11111001")) {/*printf("JP nn");*/  ld_sp_hl(opcodes(0));}
 
