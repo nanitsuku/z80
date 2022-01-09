@@ -90,7 +90,8 @@ class Core extends Module {
 
   alu16.io.input_register := 0.U
   alu16.io.offset := 0.S
- 
+  alu.io.input_flag := 0.U
+
   // 16bit registers
   val PC = RegInit(0.U(16.W))
   val IX = RegInit(0.U(16.W))
@@ -1169,51 +1170,20 @@ def add16(opcode:UInt) {
 }
 
 def daa(opcode:UInt) {
-  val temp = RegInit(regfiles_front(A_op)(8.U))
-  val AA = regfiles_front(A_op)
-  val FF = regfiles_front(F_op)
+  alu.io.input_A := regfiles_front(A_op)
+  alu.io.input_flag := regfiles_front(F_op)
+  alu.io.calc_type := opcode
 
-  val sss = Cat(FF(1),FF(0),FF(4))
-
-
-  var to_be_added = 0.U
-
-  when(AA(7,4)>9.U) {
-    // A-F
-  } .elsewhen(AA(7,4)===9.U) {
-    // 9
-
-  } .otherwise {
-    // 0-8
-
-  }
-
-  switch(sss) {
-    is("b000".U) {
+  switch(m1_t_cycle) {
+    is(3.U) {
+      regfiles_front(A_op) := alu.io.output_C
+      regfiles_front(F_op) := alu.io.flag
+      machine_state_next := M1_state
     }
-    is("b001".U) {
-
+    is(4.U) {
+      m1_t_cycle := 1.U
     }
-    is("b010".U) {
-
-    }
-    is("b011".U) {
-
-    }
-
-    is("b100".U) {
-
-    }
-    is("b101".U) {
-
-    }
-    is("b110".U) {
-
-    }
-    is("b111".U) {
-
-    }
-  }
+   }
 }
 
 def rst(opcode:UInt) {

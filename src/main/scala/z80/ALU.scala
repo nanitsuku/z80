@@ -27,6 +27,7 @@ class ALU extends Module {
     val calc_type = Input(UInt(8.W))
     val output_C = Output(UInt(8.W))
     val flag = Output(UInt(8.W))
+    val input_flag = Input(UInt(8.W))
   })
 
   val parity2_tbl = VecInit(Seq(1.U,0.U,0.U,1.U))
@@ -48,6 +49,22 @@ class ALU extends Module {
   val or_op = 0xB0.U
   val cp_op = 0xB8.U
   val or_cp_op = 0x0B.U
+
+  val rlca = 0x07.U
+  val rrca = 0x0F.U
+  val shift_op = 0x00.U
+
+  val rla = 0x17.U
+  val rra = 0x1F.U
+  val shift_c_op = 0x01.U
+  
+  val daa = 0x27.U
+  val cpl = 0x2F.U
+  val daa_or_cpl_op = 0x02.U
+
+  val scf = 0x37.U
+  val ccf = 0x37.U
+  val scf_or_ccf_op = 0x03.U
 
   io.output_C := 0.U
 
@@ -117,6 +134,34 @@ class ALU extends Module {
           io.output_C := io.input_A  // no change
         }
       }  
+    }
+    is(shift_op) {
+
+    }
+    is(shift_c_op) {
+
+    }
+    is(daa_or_cpl_op) {
+      switch(io.calc_type) {
+        is(daa) {
+          val Hi = (io.input_flag &  0x10.U) > 0.U
+          val Ci = (io.input_flag  & 0x01.U) > 0.U
+          val Ni = (io.input_flag  & 0x02.U) > 0.U
+          val base = Mux((io.input_A(3,0)>0x09.U) || Hi, Mux(Ni=/=0.U, 0xfa.U, 0x6.U), 0.U)
+          val base2 = Mux(Ci=/=0.U || io.input_A(7,4)>0x09.U || (io.input_A(7,4)===0x09.U && io.input_A(3,0)>0x09.U), 0x60.U, 0x00.U)
+
+          temp := io.input_A + Mux(Ni, (base-base2).asUInt, base+base2)
+          io.output_C := temp
+          val HH = io.input_A(3,0).zext() +  Mux(Ni, (base-base2).asUInt, base+base2)(3,0).zext()
+
+          H := (HH=/=0.S)
+          PV := getParity(temp)
+          N := Ni
+          C := base2=/=0.U
+        }
+      }
+    }
+    is(scf_or_ccf_op) {
     }
   }
 
