@@ -345,4 +345,6 @@ hs_err_pid*
 project/metals.sbt
 
 #
-hogehoge/*
+test_result/*
+
+*.lst
