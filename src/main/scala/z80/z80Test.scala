@@ -727,39 +727,3 @@ class UnitTest(filename:String) {
     true 
   }
 }
-
-object TopTest23 extends App {
-  val bufferedSource = io.Source.fromFile("src/hex/test.lst")
-
-  var PC = 0x0000;
-
-  for (line <- bufferedSource.getLines) {
-    val comm = line.split("; ")
-    val cols = line.split(" ")
-    if(cols(0).matches("[0-9a-fA-F]{4}")) {
-      PC = Integer.parseInt(cols(0), 16)
-      for(e <- comm) {
-        if(e.toLowerCase.startsWith("expect")) {
-          for((ee, index) <- e.split("""\s+""").drop(1).zipWithIndex) {
-            print(PC, index, ee)
-          }
-          println
-//        println(e)
-        }
-      }
-//      if(cols(1).length>0)
-//        println(cols.length)
-//       println(cols(0))
-    }
-   /* 
-    for(c<-comm) {
-      println(c)
-    }
-    */
-    /*
-    for ( f<- cols) {
-    println(f)
-    }
-    */
-  }
-}
