@@ -406,125 +406,97 @@ class TopSupervisor(filename:String) extends Module {
 }
 
 object TopTest extends App {
-//    iotesters.Driver.execute(args, () => new Top()) {
-//    val backend = "firrtl"
-//    val backend = "treadle"
-//    val backend = "ivl"
-//    val backend = "vcs"
-//    val backend = "vsim"
-
-    val backend = "verilator"
-    var prev_state = -1
-    var prev_t_cycle = -1
-//    val filename =  "src/hex/fetch.hex"
-//    val filename =  "src/hex/ld"
-//    val filename =  "src/hex/ex.hex"
-    val filename_default =  "src/hex/ld"
-    val filename = if (args.length>0) args(0) else filename_default
-    val unit_test = new UnitTest(filename + ".lst")
-    val driverTestDir = "test_result/TopSupervisor"
-    var first = true
-    var prev_address = 0
-    var prev_pc = 0.U
-    var pc = 0.U
-    var cc = 0
-    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor"),
-       () => new TopSupervisor(filename + ".hex")) {
-        c => new PeekPokeTester(c) {
+  val backend = "verilator"
+  var prev_state = -1
+  var prev_t_cycle = -1
+  val filename_default =  "src/hex/ld"
+  val filename = if (args.length>0) args(0) else filename_default
+  val unit_test = new UnitTest(filename + ".lst")
+  val driverTestDir = "test_result/TopSupervisor"
+  var first = true
+  var prev_address = 0
+  var prev_pc = 0.U
+  var pc = 0.U
+  var cc = 0
+  val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16")
+  iotesters.Driver.execute(arg, () => new TopSupervisor(filename + ".hex")) {
+    c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
-          System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
-              val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
-//              pc = peek(c.io.PC).U
-              var sp = peek(c.io.SP).U
-              var ix = peek(c.io.IX).U
-              var iy = peek(c.io.IY).U
-              var r = peek(c.io.R).U
-              var i = peek(c.io.I).U
-              var iff1 = 0.U //peek(c.io.IFF).U
-              var iff2 = 0.U //peek(c.io.IFF2).U
-              /*
-              val itt = if(first) {
-                first = false
-                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
-              }
-              */
-               val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
-//                unit_test.setInit(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc, ix, iy, 0.U, 0.U, r, i)
-              var pcc = pc.toInt
-          while(peek(c.io.halt_)==1) {
-            val machine_state:Int = peek(c.io.machine_state).toInt
-            val t_cycle:Int = peek(c.io.t_cycle).toInt
+      System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
+      val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+        pc = peek(c.io.PC).U
+      var sp = peek(c.io.SP).U
+      var ix = peek(c.io.IX).U
+      var iy = peek(c.io.IY).U
+      var r = peek(c.io.R).U
+      var i = peek(c.io.I).U
+      var iff1 = 0.U //peek(c.io.IFF).U
+      var iff2 = 0.U //peek(c.io.IFF2).U
+      val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
+      var pcc = pc.toInt
+      while(peek(c.io.halt_)==1) {
+        val machine_state:Int = peek(c.io.machine_state).toInt
+        val t_cycle:Int = peek(c.io.t_cycle).toInt
 
-            if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
-//              System.out.println(s"${peek(c.io.reg(c.top.core.A_op.litValue().toInt))}\n")
-/*
-              System.out.println(s"${c.top.core.A_op}\n")
-*/
-              pc = peek(c.io.PC).U
-              sp = peek(c.io.SP).U
-              ix = peek(c.io.IX).U
-              iy = peek(c.io.IY).U
-              r = peek(c.io.R).U
-              i = peek(c.io.I).U
-              iff1 = peek(c.io.IFF1).U
-              iff2 = peek(c.io.IFF2).U
-              System.out.print("D ")
-              System.out.print(f"$prev_pc%04X ")
-//:              System.out.print(s"${Integer.toString(peek(c.io.PC).toInt, 16)}%X ")
-              regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
-              regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
-              System.out.print(f"$sp%04X ")
-              System.out.print(f"$ix%04X ")
-              System.out.print(f"$iy%04X ")
-              System.out.print(f"$r%02X ")
-              System.out.print(f"$i%02X ")
-              System.out.print(f"$iff1%02X ")
-              System.out.print(f"$iff2%02X ")
- 
-              System.out.println()
-              var s:Status = itt.next().asInstanceOf[Status]
-              if (s.PC!=0 && s.invalid) {
-                s = itt.next().asInstanceOf[Status]
-              }
+        if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
+          pc = peek(c.io.PC).U
+          sp = peek(c.io.SP).U
+          ix = peek(c.io.IX).U
+          iy = peek(c.io.IY).U
+          r = peek(c.io.R).U
+          i = peek(c.io.I).U
+          iff1 = peek(c.io.IFF1).U
+          iff2 = peek(c.io.IFF2).U
+          System.out.print("D ")
+          System.out.print(f"$prev_pc%04X ")
+          regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+          regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+          System.out.print(f"$sp%04X ")
+          System.out.print(f"$ix%04X ")
+          System.out.print(f"$iy%04X ")
+          System.out.print(f"$r%02X ")
+          System.out.print(f"$i%02X ")
+          System.out.print(f"$iff1%02X ")
+          System.out.print(f"$iff2%02X ")
+          System.out.println()
+          var s:Status = itt.next().asInstanceOf[Status]
+          if (s.PC!=0 && s.invalid) {
+            s = itt.next().asInstanceOf[Status]
+          }
 
-              System.out.print("U ")
-              s.print()
+          System.out.print("U ")
+          s.print()
 
-              // register check
-              var ii = 0
-              s.getRegsDiff(
-                regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()},
-                regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}) foreach {
-                
-                case (u,s) => {
-                  expect(u, s, f"${ii} ${u} ${s}")
-                  ii=ii+1
-                }
-              }
-
-              // other register
-              expect(prev_pc, s.PC, "hoge")
-              expect(sp, s.SP, "SP failed")
-              expect(ix, s.IX, "IX failed")
-              expect(iy, s.IY, "IY failed")
-              expect(iff1, s.IFF1, "IFF1 failed")
-              expect(iff2, s.IFF2, "IFF2 failed")
-              // expect(r, s.r, "R failed")
-              expect(i, i, "I failed")
-/*
-              if (! s.check(regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()}, regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}, pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt, r.toInt, i.toInt)) {
-                println("error")
-              }
-              */
-              cc = cc + 1
+          // register check
+          var ii = 0
+          s.getRegsDiff(
+            regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()},
+            regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}) foreach {
+            
+            case (u,s) => {
+              expect(u, s, f"${ii} ${u} ${s}")
+              ii=ii+1
             }
-            step(1)
-            prev_state = machine_state
-            prev_t_cycle = t_cycle
-            prev_pc = pc
-          } 
-      }
+          }
+
+          // other register
+          expect(prev_pc, s.PC, "hoge")
+          expect(sp, s.SP, "SP failed")
+          expect(ix, s.IX, "IX failed")
+          expect(iy, s.IY, "IY failed")
+          expect(iff1, s.IFF1, "IFF1 failed")
+          expect(iff2, s.IFF2, "IFF2 failed")
+          // expect(r, s.r, "R failed")
+          expect(i, i, "I failed")
+          cc = cc + 1
+        }
+        step(1)
+        prev_state = machine_state
+        prev_t_cycle = t_cycle
+        prev_pc = pc
+      } 
     }
+  }
 }
 
 object Status {
