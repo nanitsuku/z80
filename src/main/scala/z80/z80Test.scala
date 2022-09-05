@@ -417,18 +417,18 @@ object TopTest extends App {
     var prev_state = -1
     var prev_t_cycle = -1
 //    val filename =  "src/hex/fetch.hex"
-//    val filename =  "src/hex/ld.hex"
+//    val filename =  "src/hex/ld"
 //    val filename =  "src/hex/ex.hex"
-    val filename_default =  "src/hex/test"
+    val filename_default =  "src/hex/ld"
     val filename = if (args.length>0) args(0) else filename_default
     val unit_test = new UnitTest(filename + ".lst")
-    val driverTestDir = "hogehoge"
+    val driverTestDir = "test_result/TopSupervisor"
     var first = true
     var prev_address = 0
     var prev_pc = 0.U
     var pc = 0.U
     var cc = 0
-    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir),
+    iotesters.Driver.execute(Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor"),
        () => new TopSupervisor(filename + ".hex")) {
         c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
@@ -490,9 +490,32 @@ object TopTest extends App {
               System.out.print("U ")
               s.print()
 
+              // register check
+              var ii = 0
+              s.getRegsDiff(
+                regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()},
+                regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}) foreach {
+                
+                case (u,s) => {
+                  expect(u, s, f"${ii} ${u} ${s}")
+                  ii=ii+1
+                }
+              }
+
+              // other register
+              expect(prev_pc, s.PC, "hoge")
+              expect(sp, s.SP, "SP failed")
+              expect(ix, s.IX, "IX failed")
+              expect(iy, s.IY, "IY failed")
+              expect(iff1, s.IFF1, "IFF1 failed")
+              expect(iff2, s.IFF2, "IFF2 failed")
+              // expect(r, s.r, "R failed")
+              expect(i, i, "I failed")
+/*
               if (! s.check(regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()}, regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}, pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt, r.toInt, i.toInt)) {
                 println("error")
               }
+              */
               cc = cc + 1
             }
             step(1)
@@ -554,6 +577,11 @@ case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integ
    println
   }
 
+  // for test
+  def getRegsDiff(regs_f:List[UInt], regs_b:List[UInt]) =
+    for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
+    yield (s,d) 
+  
   def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff1:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
     for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
       if ( s.litValue != d.litValue ) {
@@ -683,6 +711,12 @@ class UnitTest(filename:String) {
 
     expect_status = prev_status
     initialize2
+  }
+
+  // for test
+  def getRegsDiff(regs_f:List[UInt], regs_b:List[UInt]) {
+    for ( (s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
+    yield (s,d) 
   }
 
   def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
