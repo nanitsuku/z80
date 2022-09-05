@@ -46,6 +46,6 @@
 
         LD  SP,0200H    ; expect PC NC NC NC NC NC NC FF FF NC NC NC NC NC NC NC NC 0200 NC   NC   NC NC NC  NC
         DEC SP          ; expect PC NC NC NC NC NC NC FF FF NC NC NC NC NC NC NC NC 01FF NC   NC   NC NC NC  NC
-        INC SP          ; expect PC NC NC NC NC NC NC FF FF NC NC NC NC NC NC NC NC 0201 NC   NC   NC NC NC  NC
+        INC SP          ; expect PC NC NC NC NC NC NC FF FF NC NC NC NC NC NC NC NC 0200 NC   NC   NC NC NC  NC
 
         HALT
