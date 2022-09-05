@@ -109,7 +109,8 @@ class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
 object TopGenerate extends App {
 //    chisel3.Driver.execute(args, () => new Top)
     (new chisel3.stage.ChiselStage).emitVerilog(
-        new Top("src/hex/fetch.hex")
+        new Top("src/hex/fetch.hex"),
+        Array("--target-dir", "TopGenerated/")
     )
 }
 

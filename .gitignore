@@ -347,4 +347,5 @@ project/metals.sbt
 #
 test_result/*
 
-*.lst
+src/hex/*.lst
+TopGenerated/
