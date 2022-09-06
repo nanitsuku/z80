@@ -371,7 +371,7 @@ class TopSupervisor(filename:String) extends Module {
 // BoringUtils.bore(top.core.A, Seq(io.A))
  BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
  BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
- BoringUtils.bore(top.core.m1_t_cycle, Seq(io.t_cycle))
+ BoringUtils.bore(top.core.m_t_cycle, Seq(io.t_cycle))
  
  BoringUtils.bore(top.core.PC, Seq(io.PC))
  BoringUtils.bore(top.core.SP, Seq(io.SP))
