@@ -103,6 +103,9 @@ class Core extends Module {
   val HL_op = "b10".U
   val SP_op = "b11".U
 
+  val opcodes = Mem(8, UInt(8.W))
+  val opcode_index = RegInit(0.U(8.W))
+
   def reset_func() {
     regfiles_front(A_op) := 0xFF.U;
     regfiles_front(F_op) := 0xFF.U;
@@ -155,23 +158,12 @@ class Core extends Module {
         when(m_t_cycle===3.U) {
           machine_state_next := M2_state
         }
-        when(m_t_cycle===4.U) {
-          alu16.io.input_register := IX
-          alu16.io.offset := opcodes(2).asSInt()
-          mem_refer_addr := alu16.io.output
-         }
       }
     }
   }
 
   def inc_dec_16(instruction:UInt) {
-    var register = WireDefault(MuxCase(instruction(5,4), 
-    Array(
-      (instruction(5,4) === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
-      (instruction(5,4) === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
-      (instruction(5,4) === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
-      (instruction(5,4) === SP_op) -> SP
-    )))
+    val register = regs_pair_data
 
     val input = RegInit(register)
     val output = WireDefault(register)
@@ -1121,6 +1113,16 @@ def call(opcode:UInt) {
   }
 }
 
+
+val regs_pair = opcodes(0)(5,4)
+val regs_pair_data = WireDefault(MuxCase(0x0000.U,
+    Array(
+      (regs_pair === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
+      (regs_pair === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
+      (regs_pair === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
+      (regs_pair === SP_op) -> SP
+    )))
+
 def add16(opcode:UInt) {
   var result = RegInit(0.U(16.W))
   var F_ = RegInit(0.U(8.W))
@@ -1130,16 +1132,7 @@ def add16(opcode:UInt) {
       when(m_t_cycle===3.U) {
          machine_state_next := MX_state_8
          dummy_cycle := 8.U
-  val to_be_added = 
-    MuxCase(0x0000.U,
-      Array(
-        (opcode(5,4) === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
-        (opcode(5,4) === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
-        (opcode(5,4) === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
-        (opcode(5,4) === SP_op) -> SP,
-      )
-    )
-
+  val to_be_added = regs_pair_data
   val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
   val HL_S_ = ( HL_ & 0x0FFF.U)
 
@@ -1673,11 +1666,7 @@ def ei_di(opcode:UInt) {
     }
   }
 
-  val opcodes = Mem(8, UInt(8.W))
-  val opcode_index = RegInit(0.U(8.W))
-
-  var to_be_read = RegInit(0.U(8.W))
-  def decode (/*instruction:UInt*/) = {
+ def decode (/*instruction:UInt*/) = {
 //    printf(p"----decode ${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
     when      (opcodes(0) === BitPat("b00000000")) {/*printf("NOP\n");*/ nop(opcodes(0)); }
     .elsewhen (opcodes(0) === BitPat("b00001000")) {/*printf("ex af aftp\n");*/  ex_af_afp(opcodes(0));}
@@ -1723,10 +1712,8 @@ def ei_di(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b11000011") || opcodes(0) === BitPat("b11101001") || opcodes(0) === BitPat("b11???010")) {/*printf("JP nn");*/  jp(opcodes(0));}
     .elsewhen (opcodes(0) === BitPat("b11011101")) {/*printf("DD");*/  ld_r_ix_iy_d(opcodes(0));}
    /*
-    .elsewhen (opcodes(0) === BitPat("b00000000")) {printf("NOP\n"); to_be_read = 0; PC_next := PC_next + 1.U}
     .elsewhen (opcodes(0) === BitPat("b00001000")) {printf("EX AF,AF'\n"); 0}
     .elsewhen (opcodes(0) === BitPat("b000?1010")) {printf("LD A,(BC) or LD A,(DE)\n"); 0}
-    .elsewhen (opcodes(0) === BitPat("b00110010")) {printf("LD (nn).A\n"); to_be_read = 0;}
     .otherwise {}
     */
   }
