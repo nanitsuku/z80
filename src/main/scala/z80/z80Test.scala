@@ -91,21 +91,7 @@ class hagehoge(c: ALU) extends PeekPokeTester(c) {
 }
 
 }
-/*
-class TopTestPeekPokeTester(c: Top) extends PeekPokeTester(c) {
-    while (peek(c.io.halt)==0) {
-//        System.out.printf("%d\n", peekAt(c.core.regfiles_front, 7))
-//        System.out.println(peekAt(c.core.regfiles_front, 7))
 
-//          println(s"AAAA:${peekAt(c.core.regfiles_front, c.core.A_op.litValue().toInt)}")
-
-//          println(s"${peek(c.core.A).toInt}")
-//        System.out.println(peek(c.core.A))
-//        println(s"${peek(c.core.regfiles_front(7))}\n")
-        step(1)
-    }
-}
-*/
 object TopGenerate extends App {
 //    chisel3.Driver.execute(args, () => new Top)
     (new chisel3.stage.ChiselStage).emitVerilog(
@@ -418,23 +404,24 @@ object TopTest extends App {
   var prev_address = 0
   var prev_pc = 0.U
   var pc = 0.U
-  var cc = 0
+  var r = 0.U
+  var r_unit_test = 0
   val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16")
   iotesters.Driver.execute(arg, () => new TopSupervisor(filename + ".hex")) {
     c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
       System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
       val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
-        pc = peek(c.io.PC).U
+          pc = peek(c.io.PC).U
       var sp = peek(c.io.SP).U
       var ix = peek(c.io.IX).U
       var iy = peek(c.io.IY).U
-      var r = peek(c.io.R).U
+          r = peek(c.io.R).U
+          r_unit_test = peek(c.io.R).toInt
       var i = peek(c.io.I).U
       var iff1 = 0.U //peek(c.io.IFF).U
       var iff2 = 0.U //peek(c.io.IFF2).U
       val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
-      var pcc = pc.toInt
       while(peek(c.io.halt_)==1) {
         val machine_state:Int = peek(c.io.machine_state).toInt
         val t_cycle:Int = peek(c.io.t_cycle).toInt
@@ -466,7 +453,8 @@ object TopTest extends App {
           }
 
           System.out.print("U ")
-          s.print()
+          System.out.println(s.print(r_unit_test))
+//          s.print(0.toInt)
 
           // register check
           var ii = 0
@@ -481,15 +469,15 @@ object TopTest extends App {
           }
 
           // other register
-          expect(prev_pc, s.PC, "hoge")
+          expect(prev_pc, s.PC, "PC failed")
           expect(sp, s.SP, "SP failed")
           expect(ix, s.IX, "IX failed")
           expect(iy, s.IY, "IY failed")
+          expect(r, r_unit_test, "R failed")
           expect(iff1, s.IFF1, "IFF1 failed")
           expect(iff2, s.IFF2, "IFF2 failed")
-          // expect(r, s.r, "R failed")
           expect(i, i, "I failed")
-          cc = cc + 1
+          r_unit_test = (r_unit_test + 1)&0x7F
         }
         step(1)
         prev_state = machine_state
@@ -537,17 +525,10 @@ case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integ
   var I = i
   var invalid = false
 
-  def print() {
-    System.out.print(f"$PC%04X ")
-    regfiles.map( {n => val dd = n.litValue; System.out.print(f"$dd%02X ")})
-    System.out.print(f"$SP%04X ")
-    System.out.print(f"$IX%04X ")
-    System.out.print(f"$IY%04X ")
-    System.out.print(f"$R%02X ")
-    System.out.print(f"$I%02X ")
-    System.out.print(f"$IFF1%02X ")
-    System.out.print(f"$IFF2%02X ")
-   println
+  def print(r_unit_test:Integer):String = {
+    f"$PC%04X " +
+      regfiles.map( {n => val dd = n.litValue; f"$dd%02X "}).reduce( (z, n) => z + n ) +
+      f"$SP%04X $IX%04X $IY%04X $r_unit_test%02X $I%02X $IFF1%02X $IFF2%02X"
   }
 
   // for test
