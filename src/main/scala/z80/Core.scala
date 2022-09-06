@@ -1784,7 +1784,7 @@ def ei_di(opcode:UInt) {
           }
           opcodes(opcode_index) := io.bus.data //io.dd.byte
         } .elsewhen(m1_t_cycle === 2.U) {
-          io.bus.addr := PC_next
+//          io.bus.addr := PC_next
           PC_next := PC_next + 1.U
           io.bus.MREQ_ := 0.B
           io.bus.M1_ := 0.B
@@ -1909,32 +1909,4 @@ def ei_di(opcode:UInt) {
     m1_t_cycle := 1.U
 //    io.bus.addr := PC
   }
-
-  //**********************************
-  // Debug
-//  io.exit := (data === 0x34.U(8.W))
-
-//  io.exit := (data.asUInt === BitPat("b11111111")) //&& (m1_t_cycle === 4.U)
-//  io.exit := (data.asUInt === BitPat("b01110110")) //&& (m1_t_cycle === 4.U)
-
-  /*
-  printf("--------\n")
-  printf(p"PC: 0x${Hexadecimal(PC)}\n")
-  printf(p"opcode: 0x${Hexadecimal(opcodes(0))}\n")
-//  printf(p"m1: 0x${Hexadecimal(io.dd.m1)}\n")
-  printf(p"m1: 0x${Hexadecimal(m1_t_cycle)}\n")
-  printf(p"iff: 0x${Hexadecimal(IFF)}\n")
-  printf(p"data: 0x${Hexadecimal(io.bus.data)}\n")
-  printf(p"rd: 0x${Hexadecimal(io.bus.RD_)}\n")
-//  printf(p"A: 0x${Hexadecimal(A)}\n")
-//  printf(p"B: 0x${Hexadecimal(B)}\n")
-//  printf(p"F: 0x${Hexadecimal(F)}\n")
-//  printf(p"F: 0x${Hexadecimal(mem_refer_addr)}\n")
-//  printf(p"M1: 0x${Hexadecimal(io.bus.M1_)}\n")
-//  printf(p"reset_hold: 0x${Hexadecimal(reset_hold)}\n")
-//  printf(p"ALU : 0x${Hexadecimal(alu.io.output_C)}\n")
-//  printf(p"aa: 0x${Hexadecimal(io.bus.MREQ_)}\n")
-//  printf(p"aa: 0x${Hexadecimal(io.bus.RFSH_)}\n")
-//  printf("---------\n")
-*/
 }
