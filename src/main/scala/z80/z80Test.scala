@@ -93,9 +93,13 @@ class hagehoge(c: ALU) extends PeekPokeTester(c) {
 }
 
 object TopGenerate extends App {
-//    chisel3.Driver.execute(args, () => new Top)
+  val file_base_path = System.getProperty("user.dir")
+  val filename_default =  "src/hex/ld.hex"
+  val filename_ = if (args.length>0) args(0) else filename_default
+  val filename = f"${file_base_path}/${filename_}"
+ 
     (new chisel3.stage.ChiselStage).emitVerilog(
-        new Top("src/hex/fetch.hex"),
+        new Top(filename), 
         Array("--target-dir", "TopGenerated/")
     )
 }

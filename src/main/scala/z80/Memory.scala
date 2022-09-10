@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.util._
 import chisel3.util.experimental.loadMemoryFromFile
 import chisel3.experimental.Analog
+import chisel3.util.experimental.loadMemoryFromFileInline
 //import common.Consts._
 //import util
 
@@ -38,8 +39,8 @@ class Memory(filename:String) extends Module {
 
   val mem = Mem(65536, UInt(8.W))
   val peek = mem(0x1000.U)
-//  loadMemoryFromFile(mem, "src/hex/fetch.hex")
   loadMemoryFromFile(mem, filename)
+  loadMemoryFromFileInline(mem, filename)
 
   io.imem.data := 0.U
 
