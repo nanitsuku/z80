@@ -545,7 +545,7 @@ class Core extends Module {
  //               mem_refer_addr := SP + 1.U
   
 //                  rh := io.bus.data
-                   }
+                  }
                 }
               }
               is(2.U) {
