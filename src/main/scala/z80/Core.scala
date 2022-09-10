@@ -109,6 +109,7 @@ class Core extends Module {
   def reset_func() {
     regfiles_front(A_op) := 0xFF.U;
     regfiles_front(F_op) := 0xFF.U;
+    regfiles_front(PC) := 0x0000.U;
   }
 
   def ld_r_ix_iy_d(instruction:UInt) {
