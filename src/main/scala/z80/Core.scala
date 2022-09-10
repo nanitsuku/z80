@@ -947,35 +947,52 @@ class Core extends Module {
             }
             */
             when(fallingedge(clock.asBool())) {
-              when(opcodes(0)(3)===0.U) {
+              when(opcodes(0)(3)===1.U) {
+              } otherwise {
                 io.bus.data1 := A
               }
             }
           }
           is(2.U) {
-            when(opcodes(0)(3)===0.U) {
+            when(opcodes(0)(3)===1.U) {
+            } otherwise {
               io.bus.data1 := A
             }
             when(fallingedge(clock.asBool())) {
               io.bus.IORQ_ := 0.U
               when(opcodes(0)(3)===1.U) { // IN A,(N)
                 io.bus.RD_ := 0.U
+                A := io.bus.data
+                regfiles_front(A_op) := io.bus.data
               } otherwise { // OUT A,(N)
                 io.bus.WR_ := 0.U
               }
             }
           }
           is(3.U) {
-            when(opcodes(0)(3)===0.U) {
+            when(opcodes(0)(3)===1.U) {
+              A := io.bus.data
+                regfiles_front(A_op) := io.bus.data
+            } otherwise {
               io.bus.data1 := A
             }
-            machine_state_next := M1_state
+            io.bus.IORQ_ :=0.U
+            when(opcodes(0)(3)===1.U) { // IN A,(N)
+              io.bus.RD_ := 0.U
+                regfiles_front(A_op) := io.bus.data
+              A := io.bus.data
+            } otherwise { // OUT A,(N)
+              io.bus.WR_ := 0.U
+            }
+             machine_state_next := M1_state
           }
           is(4.U) {
-            when(opcodes(0)(3)===0.U) {
+            when(opcodes(0)(3)===1.U) {
+              A := io.bus.data
+            } otherwise {
               io.bus.data1 := A
             }
-             when(fallingedge(clock.asBool())) {
+            when(fallingedge(clock.asBool())) {
               io.bus.IORQ_ := 1.U
               when(opcodes(0)(3)===1.U) { // IN A,(N)
                 io.bus.RD_ := 1.U
