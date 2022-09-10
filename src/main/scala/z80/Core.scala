@@ -530,14 +530,12 @@ class Core extends Module {
                   opcode_index := opcode_index + 1.U
                   SP := SP + 1.U
 //                  mem_refer_addr := SP + 1.U
-when(fallingedge(clock.asBool())) {
-
+                  when(fallingedge(clock.asBool())) {
+                    mem_refer_addr := SP + 1.U
+                  } .otherwise {
                   mem_refer_addr := SP + 1.U
-} .otherwise {
-
-                  mem_refer_addr := SP + 1.U
-}
-                 } .elsewhen (m_t_cycle === 3.U) {
+                  }
+                } .elsewhen (m_t_cycle === 3.U) {
                    SP := SP + 1.U
                   mem_refer_addr := SP + 1.U
                   when(fallingedge(clock.asBool())) {
