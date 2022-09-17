@@ -8,6 +8,15 @@ import chisel3.util.experimental.BoringUtils
 
 import scala.util.matching.Regex
 
+import java.awt.event.{ KeyEvent, InputEvent }
+import javax.swing.KeyStroke
+
+import scalafx.scene.input.KeyCode
+
+import scalafx.scene._;
+import scalafx.scene.paint._;
+import javafx.scene.shape._;
+
 //import chiseltest._
 //import chiseltest.experimental.TestOptionBuilder._
 //import chiseltest.internal.VerilatorBackendAnnotation
@@ -339,6 +348,16 @@ class TopSupervisor(filename:String) extends Module {
   val I = Output(UInt(8.W))
   val IFF1 = Output(UInt(8.W))
   val IFF2 = Output(UInt(8.W))
+
+  val PortAInput = Input(UInt(8.W))
+  val PortBInput = Input(UInt(8.W))
+  val PortCUInput = Input(UInt(4.W))
+  val PortCLInput = Input(UInt(4.W))
+
+  val PortAOutput = Output(UInt(8.W))
+  val PortBOutput = Output(UInt(8.W))
+  val PortCUOutput = Output(UInt(4.W))
+  val PortCLOutput = Output(UInt(4.W))
  })
 
 
@@ -372,6 +391,16 @@ class TopSupervisor(filename:String) extends Module {
  io.IFF1 := WireDefault(0.U(8.W))
  io.IFF2 := WireDefault(0.U(8.W))
 
+ io.PortAOutput := WireDefault(0.U(8.W))
+ io.PortBOutput := WireDefault(0.U(8.W))
+ io.PortCUOutput := WireDefault(0.U(4.W))
+ io.PortCLOutput := WireDefault(0.U(4.W))
+/*
+ io.PortAInput := WireDefault(0.U(8.W))
+ io.PortBInput := WireDefault(0.U(8.W))
+ io.PortCUInput := WireDefault(0.U(4.W))
+ io.PortCLInput := WireDefault(0.U(4.W))
+*/
 // BoringUtils.bore(top.core.A, Seq(io.A))
  BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
  BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
@@ -387,6 +416,23 @@ class TopSupervisor(filename:String) extends Module {
  
  BoringUtils.bore(top.core.IFF1, Seq(io.IFF1))
  BoringUtils.bore(top.core.IFF2, Seq(io.IFF2))
+
+ BoringUtils.bore(top.c8255a.portA_datao, Seq(io.PortAOutput))
+ BoringUtils.bore(top.c8255a.portB_datao, Seq(io.PortBOutput))
+ BoringUtils.bore(top.c8255a.portC_dataUo, Seq(io.PortCUOutput))
+ BoringUtils.bore(top.c8255a.portC_dataLo, Seq(io.PortCLOutput))
+
+
+ top.io.PortAInput := io.PortAInput
+ top.io.PortBInput := io.PortBInput
+ top.io.PortCLInput := io.PortCLInput
+ top.io.PortCUInput := io.PortCUInput
+/*
+ io.PortAOutput := top.io.PortAOutput
+ io.PortBOutput := top.io.PortBOutput
+ io.PortCUOutput := top.io.PortCUOutput
+ io.PortCLOutput := top.io.PortCLOutput
+ */
 // Boring
 
 // io.A := A
@@ -410,7 +456,12 @@ object TopTest extends App {
   var pc = 0.U
   var r = 0.U
   var r_unit_test = 0
-  val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16")
+  val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16", "--generate-vcd-output", "on", "--tr-mem-to-vcd", "mem1:h83c0-83ff")
+
+  def hoge() {
+
+  }
+
   iotesters.Driver.execute(arg, () => new TopSupervisor(filename + ".hex")) {
     c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
@@ -426,6 +477,149 @@ object TopTest extends App {
       var iff1 = 0.U //peek(c.io.IFF).U
       var iff2 = 0.U //peek(c.io.IFF2).U
       val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
+      var counter = 0
+      var key = 0
+      var kkk = new scala.util.Random
+      var tt = true
+
+      val scene = new Scene(300, 300) {
+        val btn_startstop = new Button("Start")
+
+        /*
+        onKeyPressed = (ev:KeyEvent) => {
+            if( ev.getKeyCode() == KeyCode.LEFT ) {
+            }
+        }
+        content = List(btn_startstop)
+        */
+      }
+
+      while(peek(c.io.halt_)==1) {
+        val machine_state:Int = peek(c.io.machine_state).toInt
+        val t_cycle:Int = peek(c.io.t_cycle).toInt
+
+        if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
+          pc = peek(c.io.PC).U
+          sp = peek(c.io.SP).U
+          ix = peek(c.io.IX).U
+          iy = peek(c.io.IY).U
+          r = peek(c.io.R).U
+          i = peek(c.io.I).U
+          iff1 = peek(c.io.IFF1).U
+          iff2 = peek(c.io.IFF2).U
+          System.out.print("D ")
+          System.out.print(f"$prev_pc%04X ")
+          regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+          regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
+          System.out.print(f"$sp%04X ")
+          System.out.print(f"$ix%04X ")
+          System.out.print(f"$iy%04X ")
+          System.out.print(f"$r%02X ")
+          System.out.print(f"$i%02X ")
+          System.out.print(f"$iff1%02X ")
+          System.out.print(f"$iff2%02X ")
+          System.out.println()
+          /*
+          var s:Status = itt.next().asInstanceOf[Status]
+          if (s.PC!=0 && s.invalid) {
+            s = itt.next().asInstanceOf[Status]
+          }
+
+          System.out.print("U ")
+          System.out.println(s.print(r_unit_test))
+//          s.print(0.toInt)
+
+          // register check
+          var ii = 0
+          s.getRegsDiff(
+            regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()},
+            regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}) foreach {
+            
+            case (u,s) => {
+              expect(u, s, f"${ii} ${u} ${s}")
+              ii=ii+1
+            }
+          }
+
+         // other register
+          expect(prev_pc, s.PC, "PC failed")
+          expect(sp, s.SP, "SP failed")
+          expect(ix, s.IX, "IX failed")
+          expect(iy, s.IY, "IY failed")
+          expect(r, r_unit_test, "R failed")
+          expect(iff1, s.IFF1, "IFF1 failed")
+          expect(iff2, s.IFF2, "IFF2 failed")
+          expect(i, i, "I failed")
+          r_unit_test = (r_unit_test + 1)&0x7F
+          */
+        }
+        step(1)
+
+//        poke(c.io.PortAInput, pc & peek(c.io.regs_front(6)))
+        if (counter==253) {
+          counter = 0
+          tt = !tt
+          var demux = peek(c.io.PortCUOutput).U.intValue()
+          System.out.println(f"${(~demux)&0xF} ${tt}")
+          key = (~((1 << kkk.nextInt(8)))&0xFF)
+         if(demux==1 || demux==2) {
+//            key = (~((1 << kkk.nextInt(8)))&0xFF)
+         } else if (demux==4) {
+            key = 0xFB
+         }
+         if (tt) {
+            key = 0xFF
+          } /*else {
+            key = (~((1 << kkk.nextInt(8)))&0xFF)
+          }*/
+        System.out.println(counter, key)
+        poke(c.io.PortAInput, key.asUInt())
+        } else {
+          counter = counter + 1
+        }
+
+
+        prev_state = machine_state
+        prev_t_cycle = t_cycle
+        prev_pc = pc
+      } 
+    }
+  }
+}
+
+object TopTest2 extends App {
+  val backend = "verilator"
+  var prev_state = -1
+  var prev_t_cycle = -1
+  val filename_default =  "src/hex/ld"
+  val filename = if (args.length>0) args(0) else filename_default
+  val unit_test = new UnitTest(filename + ".lst")
+  val driverTestDir = "test_result/TopSupervisor"
+  var first = true
+  var prev_address = 0
+  var prev_pc = 0.U
+  var pc = 0.U
+  var r = 0.U
+  var r_unit_test = 0
+  val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16", "--generate-vcd-output", "on", "--tr-mem-to-vcd", "mem1:h83c0-83ff")
+  iotesters.Driver.execute(arg, () => new TopSupervisor(filename + ".hex")) {
+    c => new PeekPokeTester(c) {
+      val unit_test = new UnitTest(filename + ".lst")
+      System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
+      val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+          pc = peek(c.io.PC).U
+      var sp = peek(c.io.SP).U
+      var ix = peek(c.io.IX).U
+      var iy = peek(c.io.IY).U
+          r = peek(c.io.R).U
+          r_unit_test = peek(c.io.R).toInt
+      var i = peek(c.io.I).U
+      var iff1 = 0.U //peek(c.io.IFF).U
+      var iff2 = 0.U //peek(c.io.IFF2).U
+      val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
+
+      var counter = 0
+      var key = 0
       while(peek(c.io.halt_)==1) {
         val machine_state:Int = peek(c.io.machine_state).toInt
         val t_cycle:Int = peek(c.io.t_cycle).toInt
@@ -472,7 +666,7 @@ object TopTest extends App {
             }
           }
 
-          // other register
+         // other register
           expect(prev_pc, s.PC, "PC failed")
           expect(sp, s.SP, "SP failed")
           expect(ix, s.IX, "IX failed")
@@ -484,6 +678,19 @@ object TopTest extends App {
           r_unit_test = (r_unit_test + 1)&0x7F
         }
         step(1)
+
+//        poke(c.io.PortAInput, pc & peek(c.io.regs_front(6)))
+        poke(c.io.PortAInput, key.asUInt())
+
+        if (counter==1000) {
+          counter = 0
+          key = (key<<1)&0xFF
+        } else {
+          counter = counter + 1
+        }
+//        System.out.println(counter)
+//        System.out.println(getKeyCode())
+
         prev_state = machine_state
         prev_t_cycle = t_cycle
         prev_pc = pc
