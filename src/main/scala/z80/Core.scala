@@ -935,23 +935,26 @@ class Core extends Module {
           machine_state_next := MINOUT_state
           mem_refer_addr := Cat(A, opcodes(1))
           PC_next := PC_next + 1.U
+          when(opcodes(0)(3)===0.U) {
+            io.bus.data1 := regfiles_front(A_op)
+          }
         }
       }
       is(MINOUT_state) {
         io.bus.addr := mem_refer_addr
         switch(m_t_cycle) {
           is(1.U) {
-            /*
             when(opcodes(0)(3)===0.U) {
               io.bus.data1 := A
             }
-            */
+            /*
             when(fallingedge(clock.asBool())) {
               when(opcodes(0)(3)===1.U) {
               } otherwise {
                 io.bus.data1 := A
               }
             }
+            */
           }
           is(2.U) {
             when(opcodes(0)(3)===1.U) {
@@ -972,7 +975,7 @@ class Core extends Module {
           is(3.U) {
             when(opcodes(0)(3)===1.U) {
               A := io.bus.data
-                regfiles_front(A_op) := io.bus.data
+              regfiles_front(A_op) := io.bus.data
             } otherwise {
               io.bus.data1 := A
             }
@@ -1902,7 +1905,7 @@ def ei_di(opcode:UInt) {
           m_t_cycle := m_t_cycle + 1.U
         } .otherwise {
           m_t_cycle := 1.U
-        machine_state := machine_state_next
+          machine_state := machine_state_next
         }
         decode()
       }
