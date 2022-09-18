@@ -31,14 +31,17 @@ import scalafx.scene.control.TextField
 
 //package example.lambda
 
-/*
 import scalafx.Includes._
 import scalafx.application.JFXApp
 import scalafx.application.Platform
 import scalafx.application.JFXApp.PrimaryStage
-mport scalafx.scene.layout.VBox
+import scalafx.scene.layout._
 import treadle.executable.Big
-*/
+import javafx.beans.property.ObjectProperty
+import javafx.event.EventHandler
+import java.util.concurrent.Semaphore
+import scalafx.animation.Timeline
+import scalafx.animation.KeyFrame
 
 object TopGenerate extends App {
   val file_base_path = System.getProperty("user.dir")
@@ -52,183 +55,125 @@ object TopGenerate extends App {
     )
 }
 
-object TopTestObsolete extends App {
-//    iotesters.Driver.execute(args, () => new Top()) {
-//    val backend = "firrtl"
-//    val backend = "treadle"
-//    val backend = "ivl"
-//    val backend = "vcs"
-//    val backend = "vsim"
-    val backend = "verilator"
-    iotesters.Driver.execute(Array("--backend-name", backend), () => new Top("src/hex/fetch.hex")) {
-//    iotesters.Driver.execute(Array("--tr-write-vcd"), () => new Top()) {
-//        /*
-        c => new PeekPokeTester(c) {
-//          chisel3.util.experimental.loadMemoryFromFile(c.memory.mem, "src/hex/fetch.hex")
-//          for(i <- 1 to 10) {
-//        var regs = c.io.registers
-        var m1 = 0
-        while(peek(c.core.io.bus.HALT_) == 1) { 
-//          peekAt(c.core.regfiles_front, 7)
-//            poke(,99)
-//            c.io.exit.peek
-//            peek("c_core_A")
-//peek(c.core.A)
-//peek(c.core.io.bus.addr)
-          if (m1==0 && peek(c.core.io.bus.M1_)==1) {
-//          println(s"aaaa:${peek(c.io.registers.PC)}")
-          }
-          m1 = peek(c.core.io.bus.M1_).toInt
-//          regs = c.io.registers
-//println(s"m1:${peek(c.io.M1)}")
-//peek("Top.core_io_bus_data")
-//peek("Top_io_exit")
-//peek("Top.io_exit")
-//            println(s"${peek(c.io.
-//              peek(c.core.io.exit)
-//              System.out.println(peekAt(c.core.regfiles_front, 7))
-//            peekAt(c.core.regfiles_front, 7)
-//println(c.io.exit.pathName)
-//            println(s"${peek(c.memory.mem.read(0.U))}")
-            step(1)
-//            println(s"hoge")
-          }
-        }
-//        */
-//        c => new TopTestPeekPokeTester(c)
-    }
-
-}
-
-/*
-class hhh extends FlatSpec with Matchers {
-  behavior of "hhh"
-
-  it should "hhh" in {
-    chisel3.iotesters.Driver(() => new Top) {
-      c =>
-        new TopTestPeekPokeTester(c)
-    } should be (true)
-  }
-
-}
-*/
-
 class TopSupervisor(filename:String) extends Module {
   var io = IO(new Bundle {
-//  val A = Output(UInt(8.W))
-  val regs_front = Output(Vec(8,UInt(8.W)))
-  val regs_back = Output(Vec(8,UInt(8.W)))
-  val halt_ = Output(Bool())
-  val machine_state = Output(UInt(8.W))
-  val t_cycle = Output(UInt(8.W))
-  val PC = Output(UInt(16.W))
-  val SP = Output(UInt(16.W))
-  val IX = Output(UInt(16.W))
-  val IY = Output(UInt(16.W))
-  val R = Output(UInt(8.W))
-  val I = Output(UInt(8.W))
-  val IFF1 = Output(UInt(8.W))
-  val IFF2 = Output(UInt(8.W))
+  //  val A = Output(UInt(8.W))
+    val regs_front = Output(Vec(8,UInt(8.W)))
+    val regs_back = Output(Vec(8,UInt(8.W)))
+    val halt_ = Output(Bool())
+    val machine_state = Output(UInt(8.W))
+    val t_cycle = Output(UInt(8.W))
+    val PC = Output(UInt(16.W))
+    val SP = Output(UInt(16.W))
+    val IX = Output(UInt(16.W))
+    val IY = Output(UInt(16.W))
+    val R = Output(UInt(8.W))
+    val I = Output(UInt(8.W))
+    val IFF1 = Output(UInt(8.W))
+    val IFF2 = Output(UInt(8.W))
+  
+    val PortAInput = Input(UInt(8.W))
+    val PortBInput = Input(UInt(8.W))
+    val PortCUInput = Input(UInt(4.W))
+    val PortCLInput = Input(UInt(4.W))
+  
+    val PortAOutput = Output(UInt(8.W))
+    val PortBOutput = Output(UInt(8.W))
+    val PortCUOutput = Output(UInt(4.W))
+    val PortCLOutput = Output(UInt(4.W))
 
-  val PortAInput = Input(UInt(8.W))
-  val PortBInput = Input(UInt(8.W))
-  val PortCUInput = Input(UInt(4.W))
-  val PortCLInput = Input(UInt(4.W))
+    val ADDRH_register = Output(UInt(8.W))
+    val ADDRL_register = Output(UInt(8.W))
+    val DATAH_register = Output(UInt(8.W))
+    val DATAL_register = Output(UInt(8.W))
 
-  val PortAOutput = Output(UInt(8.W))
-  val PortBOutput = Output(UInt(8.W))
-  val PortCUOutput = Output(UInt(4.W))
-  val PortCLOutput = Output(UInt(4.W))
- })
+    val key_data_1 = Input(UInt(8.W))
+    val key_data_2 = Input(UInt(8.W))
+    val key_data_3 = Input(UInt(8.W))
 
+    val key_output = Output(UInt(8.W))
+  })
 
- val top = Module(new Top(filename))
+  val top = Module(new Top(filename))
 
-// val A = WireDefault(0.U(8.W))
-// val reg = Wire(Vec(8,UInt(8.W)))
-
- for ( i <- 0 to 7 ) {
-  io.regs_front(i) :=  WireDefault(0.U(8.W))
-  io.regs_back(i) :=  WireDefault(0.U(8.W))
-//  reg(i) := io.reg(i)
-//  io.reg(i) := reg(i)
-  BoringUtils.bore(top.core.regfiles_front(i), Seq(io.regs_front(i)))
-  BoringUtils.bore(top.core.regfiles_back(i), Seq(io.regs_back(i)))
-//  io.reg(i) := reg(i)
- }
-
- io.halt_ := WireDefault(0.B)
- io.machine_state := WireDefault(0.U(8.W))
- io.t_cycle := WireDefault(0.U(8.W))
+  for ( i <- 0 to 7 ) {
+    io.regs_front(i) :=  WireDefault(0.U(8.W))
+    io.regs_back(i) :=  WireDefault(0.U(8.W))
+    BoringUtils.bore(top.core.regfiles_front(i), Seq(io.regs_front(i)))
+    BoringUtils.bore(top.core.regfiles_back(i), Seq(io.regs_back(i)))
+  }
  
- io.PC := WireDefault(0.U(16.W))
- io.SP := WireDefault(0.U(16.W))
- io.IX := WireDefault(0.U(16.W))
- io.IY := WireDefault(0.U(16.W))
+  io.halt_ := WireDefault(0.B)
+  io.machine_state := WireDefault(0.U(8.W))
+  io.t_cycle := WireDefault(0.U(8.W))
+  
+  io.PC := WireDefault(0.U(16.W))
+  io.SP := WireDefault(0.U(16.W))
+  io.IX := WireDefault(0.U(16.W))
+  io.IY := WireDefault(0.U(16.W))
+  
+  io.R := WireDefault(0.U(8.W))
+  io.I := WireDefault(0.U(8.W))
  
- io.R := WireDefault(0.U(8.W))
- io.I := WireDefault(0.U(8.W))
-
- io.IFF1 := WireDefault(0.U(8.W))
- io.IFF2 := WireDefault(0.U(8.W))
-
- io.PortAOutput := WireDefault(0.U(8.W))
- io.PortBOutput := WireDefault(0.U(8.W))
- io.PortCUOutput := WireDefault(0.U(4.W))
- io.PortCLOutput := WireDefault(0.U(4.W))
-/*
- io.PortAInput := WireDefault(0.U(8.W))
- io.PortBInput := WireDefault(0.U(8.W))
- io.PortCUInput := WireDefault(0.U(4.W))
- io.PortCLInput := WireDefault(0.U(4.W))
-*/
-// BoringUtils.bore(top.core.A, Seq(io.A))
- BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
- BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
- BoringUtils.bore(top.core.m_t_cycle, Seq(io.t_cycle))
+  io.IFF1 := WireDefault(0.U(8.W))
+  io.IFF2 := WireDefault(0.U(8.W))
  
- BoringUtils.bore(top.core.PC, Seq(io.PC))
- BoringUtils.bore(top.core.SP, Seq(io.SP))
- BoringUtils.bore(top.core.IX, Seq(io.IX))
- BoringUtils.bore(top.core.IY, Seq(io.IY))
+  io.PortAOutput := WireDefault(0.U(8.W))
+  io.PortBOutput := WireDefault(0.U(8.W))
+  io.PortCUOutput := WireDefault(0.U(4.W))
+  io.PortCLOutput := WireDefault(0.U(4.W))
+
+  io.ADDRH_register:= WireDefault(0.U(8.W))
+  io.ADDRL_register:= WireDefault(0.U(8.W))
+  io.DATAH_register:= WireDefault(0.U(8.W))
+  io.DATAL_register:= WireDefault(0.U(8.W))
+
+  io.key_output := WireDefault(0.U(8.W))
+
+  BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
+  BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
+  BoringUtils.bore(top.core.m_t_cycle, Seq(io.t_cycle))
+  
+  BoringUtils.bore(top.core.PC, Seq(io.PC))
+  BoringUtils.bore(top.core.SP, Seq(io.SP))
+  BoringUtils.bore(top.core.IX, Seq(io.IX))
+  BoringUtils.bore(top.core.IY, Seq(io.IY))
+  
+  BoringUtils.bore(top.core.R, Seq(io.R))
+  BoringUtils.bore(top.core.I, Seq(io.I))
+  
+  BoringUtils.bore(top.core.IFF1, Seq(io.IFF1))
+  BoringUtils.bore(top.core.IFF2, Seq(io.IFF2))
  
- BoringUtils.bore(top.core.R, Seq(io.R))
- BoringUtils.bore(top.core.I, Seq(io.I))
- 
- BoringUtils.bore(top.core.IFF1, Seq(io.IFF1))
- BoringUtils.bore(top.core.IFF2, Seq(io.IFF2))
+  BoringUtils.bore(top.c8255a.portA_datao, Seq(io.PortAOutput))
+  BoringUtils.bore(top.c8255a.portB_datao, Seq(io.PortBOutput))
+  BoringUtils.bore(top.c8255a.portC_dataUo, Seq(io.PortCUOutput))
+  BoringUtils.bore(top.c8255a.portC_dataLo, Seq(io.PortCLOutput))
 
- BoringUtils.bore(top.c8255a.portA_datao, Seq(io.PortAOutput))
- BoringUtils.bore(top.c8255a.portB_datao, Seq(io.PortBOutput))
- BoringUtils.bore(top.c8255a.portC_dataUo, Seq(io.PortCUOutput))
- BoringUtils.bore(top.c8255a.portC_dataLo, Seq(io.PortCLOutput))
+  BoringUtils.bore(top.memory.ADRESH, Seq(io.ADDRH_register))
+  BoringUtils.bore(top.memory.ADRESL, Seq(io.ADDRL_register))
+  BoringUtils.bore(top.memory.DATAH, Seq(io.DATAH_register))
+  BoringUtils.bore(top.memory.DATAL, Seq(io.DATAL_register))
 
+  BoringUtils.bore(top.key_encoder.io.output, Seq(io.key_output))
 
- top.io.PortAInput := io.PortAInput
- top.io.PortBInput := io.PortBInput
- top.io.PortCLInput := io.PortCLInput
- top.io.PortCUInput := io.PortCUInput
-/*
- io.PortAOutput := top.io.PortAOutput
- io.PortBOutput := top.io.PortBOutput
- io.PortCUOutput := top.io.PortCUOutput
- io.PortCLOutput := top.io.PortCLOutput
- */
-// Boring
+  top.io.PortAInput := io.PortAInput
+  top.io.PortBInput := io.PortBInput
+  top.io.PortCLInput := io.PortCLInput
+  top.io.PortCUInput := io.PortCUInput
 
-// io.A := A
-// io.exit := exit
-// io.machine_state := machine_state
-// io.t_cycle := t_cycle
+  top.io.key_data_1 := io.key_data_1
+  top.io.key_data_2 := io.key_data_2
+  top.io.key_data_3 := io.key_data_3
 
 }
 
-object TopTest extends App {
+object Z80TestGUI extends JFXApp  {
   val backend = "verilator"
   var prev_state = -1
   var prev_t_cycle = -1
   val filename_default =  "src/hex/ld"
+  val args = List()
   val filename = if (args.length>0) args(0) else filename_default
   val unit_test = new UnitTest(filename + ".lst")
   val driverTestDir = "test_result/TopSupervisor"
@@ -240,136 +185,257 @@ object TopTest extends App {
   var r_unit_test = 0
   val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16", "--generate-vcd-output", "on", "--tr-mem-to-vcd", "mem1:h83c0-83ff")
 
-  def hoge() {
+  val pc_text = new TextField()
+  val addr_text = new TextField()
+  val data_text = new TextField()
+  val others_text = new TextField()
 
+  var pc_ = 0
+  var addr_ = 0
+  var adata_ = 0
+
+  var key_data_1 = 0xFF
+  var key_data_2 = 0xFF
+  var key_data_3 = 0xFF
+
+  val gui_semaphore = new Semaphore(1)
+  stage = new PrimaryStage {
+    title = "Z80TestGUI"
+    scene = new Scene() {
+      root = new VBox {
+        val ho = new Z80TestThread(3)
+        children = List(
+          new Button("StartTest") {
+            onMouseClicked = handle {
+              ho.startTask
+            }},
+          new Button("Quit") {
+            onMouseClicked = handle {
+              ho.tttt = false
+              close()
+            }},
+          new HBox {
+            children = List(
+              new Button("0")  {
+               onMousePressed = handle {
+                key_data_1= 0xFE;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("1")  {
+               onMousePressed = handle {
+                key_data_1 = 0xFD;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("2")  {
+               onMousePressed = handle {
+                key_data_1 = 0xFB;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("3")  {
+               onMousePressed = handle {
+                key_data_1 = 0xF7;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("4")  {
+               onMousePressed = handle {
+                key_data_1 = 0xEF;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("5")  {
+               onMousePressed = handle {
+                key_data_1 = 0xDF;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("6")  {
+               onMousePressed = handle {
+                key_data_1 = 0xBF;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("7")  {
+               onMousePressed = handle {
+                key_data_1 = 0x7F;
+               }
+               onMouseReleased = handle {
+                key_data_1 = 0xFF;
+               }
+              },
+              new Button("8")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xFE;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("9")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xFD;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("A")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xFB;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("B")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xF7;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("C")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xEF;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("D")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xDF;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("E")  {
+                onMousePressed = handle {
+                 key_data_2 = 0xBF;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("F")  {
+                onMousePressed = handle {
+                 key_data_2 = 0x7F;
+                }
+                onMouseReleased = handle {
+                 key_data_2 = 0xFF;
+                }
+              },
+              new Button("ADRS SET")  {
+                onMousePressed = handle {
+                 key_data_3 = 0xFB;
+                }
+                onMouseReleased = handle {
+                 key_data_3 = 0xFF;
+                }
+              }
+             )
+          },
+          pc_text, addr_text, data_text, others_text)
+      }
+    }
   }
 
-  iotesters.Driver.execute(arg, () => new TopSupervisor(filename + ".hex")) {
-    c => new PeekPokeTester(c) {
-      val unit_test = new UnitTest(filename + ".lst")
-      System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
-      val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
-          pc = peek(c.io.PC).U
-      var sp = peek(c.io.SP).U
-      var ix = peek(c.io.IX).U
-      var iy = peek(c.io.IY).U
-          r = peek(c.io.R).U
-          r_unit_test = peek(c.io.R).toInt
-      var i = peek(c.io.I).U
-      var iff1 = 0.U //peek(c.io.IFF).U
-      var iff2 = 0.U //peek(c.io.IFF2).U
-      val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
-      var counter = 0
-      var key = 0
-      var kkk = new scala.util.Random
-      var tt = true
-
-      val scene = new Scene(300, 300) {
-        val btn_startstop = new Button("Start")
-
-        /*
-        onKeyPressed = (ev:KeyEvent) => {
-            if( ev.getKeyCode() == KeyCode.LEFT ) {
-            }
-        }
-        content = List(btn_startstop)
-        */
+  class Z80TestThread(i:Integer) {
+    val aa = i
+    var tttt = true
+    val backgroundThread = new Thread {
+      setDaemon(true)
+      override def run = {
+        runTask
       }
+    }
 
-      while(peek(c.io.halt_)==1) {
-        val machine_state:Int = peek(c.io.machine_state).toInt
-        val t_cycle:Int = peek(c.io.t_cycle).toInt
+    def startTask = {
+        backgroundThread.start()
+    }
 
-        if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
+    def runTask= {
+      iotesters.Driver.execute(arg, () => new TopSupervisor("src/hex/tk80.hex")) {
+        c => new PeekPokeTester(c) {
+          val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
           pc = peek(c.io.PC).U
-          sp = peek(c.io.SP).U
-          ix = peek(c.io.IX).U
-          iy = peek(c.io.IY).U
-          r = peek(c.io.R).U
-          i = peek(c.io.I).U
-          iff1 = peek(c.io.IFF1).U
-          iff2 = peek(c.io.IFF2).U
-          System.out.print("D ")
-          System.out.print(f"$prev_pc%04X ")
-          regs.map { n => val dd = peek(c.io.regs_front(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
-          regs.map { n => val dd = peek(c.io.regs_back(n.toInt)).toInt; System.out.print(f"$dd%02X ") }
-          System.out.print(f"$sp%04X ")
-          System.out.print(f"$ix%04X ")
-          System.out.print(f"$iy%04X ")
-          System.out.print(f"$r%02X ")
-          System.out.print(f"$i%02X ")
-          System.out.print(f"$iff1%02X ")
-          System.out.print(f"$iff2%02X ")
-          System.out.println()
-          /*
-          var s:Status = itt.next().asInstanceOf[Status]
-          if (s.PC!=0 && s.invalid) {
-            s = itt.next().asInstanceOf[Status]
-          }
+          var sp = peek(c.io.SP).U
+          var ix = peek(c.io.IX).U
+          var iy = peek(c.io.IY).U
+              r = peek(c.io.R).U
+              r_unit_test = peek(c.io.R).toInt
+          var i = peek(c.io.I).U
+          var iff1 = 0.U //peek(c.io.IFF).U
+          var iff2 = 0.U //peek(c.io.IFF2).U
+          var counter = 0
+          var key = 0
+          var kkk = new scala.util.Random
+          var tt = true
+    
+          while(peek(c.io.halt_)==1 && tttt) {
+            val machine_state:Int = peek(c.io.machine_state).toInt
+            val t_cycle:Int = peek(c.io.t_cycle).toInt
+    
+            if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
+              pc = peek(c.io.PC).U
 
-          System.out.print("U ")
-          System.out.println(s.print(r_unit_test))
-//          s.print(0.toInt)
+              sp = peek(c.io.SP).U
+              ix = peek(c.io.IX).U
+              iy = peek(c.io.IY).U
+              r = peek(c.io.R).U
+              i = peek(c.io.I).U
+              iff1 = peek(c.io.IFF1).U
+              iff2 = peek(c.io.IFF2).U
 
-          // register check
-          var ii = 0
-          s.getRegsDiff(
-            regs.map { n => peek(c.io.regs_front(n.toInt)).asUInt()},
-            regs.map { n => peek(c.io.regs_back(n.toInt)).asUInt()}) foreach {
-            
-            case (u,s) => {
-              expect(u, s, f"${ii} ${u} ${s}")
-              ii=ii+1
+
+               poke(c.io.key_data_1, key_data_1)
+               poke(c.io.key_data_2, key_data_2)
+               poke(c.io.key_data_3, key_data_3)
+
+            val pc_str = f"${pc.intValue()}%04X" 
+            val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
+            val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
+            val others_str = f"${peek(c.io.key_output)}"
+            Platform.runLater( () -> {
+              pc_text.setText(pc_str)
+              addr_text.setText(address_str)
+              data_text.setText(data_str)
+              others_text.setText((others_str))
+            })
+ 
             }
+            step(1)
+    
+            prev_state = machine_state
+            prev_t_cycle = t_cycle
+            prev_pc = pc
           }
-
-         // other register
-          expect(prev_pc, s.PC, "PC failed")
-          expect(sp, s.SP, "SP failed")
-          expect(ix, s.IX, "IX failed")
-          expect(iy, s.IY, "IY failed")
-          expect(r, r_unit_test, "R failed")
-          expect(iff1, s.IFF1, "IFF1 failed")
-          expect(iff2, s.IFF2, "IFF2 failed")
-          expect(i, i, "I failed")
-          r_unit_test = (r_unit_test + 1)&0x7F
-          */
         }
-        step(1)
-
-//        poke(c.io.PortAInput, pc & peek(c.io.regs_front(6)))
-        if (counter==253) {
-          counter = 0
-          tt = !tt
-          var demux = peek(c.io.PortCUOutput).U.intValue()
-          System.out.println(f"${(~demux)&0xF} ${tt}")
-          key = (~((1 << kkk.nextInt(8)))&0xFF)
-         if(demux==1 || demux==2) {
-//            key = (~((1 << kkk.nextInt(8)))&0xFF)
-         } else if (demux==4) {
-            key = 0xFB
-         }
-         if (tt) {
-            key = 0xFF
-          } /*else {
-            key = (~((1 << kkk.nextInt(8)))&0xFF)
-          }*/
-        System.out.println(counter, key)
-        poke(c.io.PortAInput, key.asUInt())
-        } else {
-          counter = counter + 1
-        }
-
-
-        prev_state = machine_state
-        prev_t_cycle = t_cycle
-        prev_pc = pc
-      } 
+      }
     }
   }
 }
 
-object TopTest2 extends App {
+object TopTest extends App {
   val backend = "verilator"
   var prev_state = -1
   var prev_t_cycle = -1

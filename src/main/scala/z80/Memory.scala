@@ -49,11 +49,15 @@ class Memory(filename:String) extends Module {
   val KFLAG = Wire(UInt(8.W))
   KFLAG := mem.read(0x83F3.U)
 
-  val ADRES = Wire(UInt(16.W))
-  ADRES := mem.read(0x83EE.U)
+  val ADRESH = Wire(UInt(8.W))
+  ADRESH := mem.read(0x83EF.U)
+  val ADRESL = Wire(UInt(8.W))
+  ADRESL := mem.read(0x83EE.U)
 
-  val DATA = Wire(UInt(16.W))
-  DATA := mem.read(0x83EC.U)
+  val DATAH = Wire(UInt(8.W))
+  DATAH := mem.read(0x83ED.U)
+  val DATAL = Wire(UInt(8.W))
+  DATAL := mem.read(0x83EC.U)
 
   val DISP = Wire(Vec(4,UInt(8.W)))
   for (i<-0 to 3) {
@@ -78,8 +82,10 @@ class Memory(filename:String) extends Module {
 
   dontTouch(DIG)
   dontTouch(KFLAG)
-  dontTouch(ADRES)
-  dontTouch(DATA)
+  dontTouch(ADRESH)
+  dontTouch(ADRESL)
+  dontTouch(DATAH)
+  dontTouch(DATAL)
   dontTouch(DISP)
 //  printf("%d\n", peek)
 }

@@ -18,6 +18,12 @@ class Top(filename:String) extends Module {
     val PortCUInput = Input(UInt(8.W))
     val PortCLInput = Input(UInt(8.W))
 
+    val key_data_1 = Input(UInt(8.W))
+    val key_data_2 = Input(UInt(8.W))
+    val key_data_3 = Input(UInt(8.W))
+
+    val key_output = Output(UInt(8.W))
+
 //    val HOGE = Output(UInt(8.W))
 /*
     val PortAInput = Input(UInt(8.W))
@@ -30,6 +36,7 @@ class Top(filename:String) extends Module {
   
   val core   = Module(new Core())
   val memory = Module(new Memory(filename))
+  val key_encoder = Module(new KeyEncoder())
 
   val inout = Module(new InOut81())
   val c8255a = Module(new C8255A())
@@ -74,6 +81,12 @@ class Top(filename:String) extends Module {
   c8255a.io.PortCUInput := io.PortCUInput 
   c8255a.io.PortCLInput := io.PortCLInput 
 */
+
+  key_encoder.io.selector := c8255a.io.PortCUOutput
+  key_encoder.io.key_1 := io.key_data_1
+  key_encoder.io.key_2 := io.key_data_2
+  key_encoder.io.key_3 := io.key_data_3
+
   io.PortAOutput := c8255a.io.PortAOutput
   io.PortBOutput := c8255a.io.PortBOutput
   io.PortCUOutput := c8255a.io.PortCUOutput
@@ -85,11 +98,14 @@ class Top(filename:String) extends Module {
   c8255a.io.PortCLInput := 0xA.U
 */
 
-  c8255a.io.PortAInput := io.PortAInput 
+  c8255a.io.PortAInput := key_encoder.io.output
+
+//  c8255a.io.PortAInput := io.PortAInput 
   c8255a.io.PortBInput := io.PortBInput 
   c8255a.io.PortCUInput := io.PortCUInput
   c8255a.io.PortCLInput := io.PortCLInput
 
+  io.key_output := key_encoder.io.output
 
   dontTouch(io)
   dontTouch(c8255a.io.PortAInput)
@@ -100,6 +116,11 @@ class Top(filename:String) extends Module {
   dontTouch(c8255a.io.PortBOutput)
   dontTouch(c8255a.io.PortCUOutput)
   dontTouch(c8255a.io.PortCLOutput)
+  dontTouch(key_encoder.io.key_1)
+  dontTouch(key_encoder.io.key_2)
+  dontTouch(key_encoder.io.key_3)
+  dontTouch(key_encoder.io.output)
+  dontTouch(key_encoder.io.selector)
 
 /*
   io.PortAInput := c8255a.io.PortAInput
