@@ -87,9 +87,7 @@ class TopSupervisor(filename:String) extends Module {
     val DATAH_register = Output(UInt(8.W))
     val DATAL_register = Output(UInt(8.W))
 
-    val key_data_1 = Input(UInt(8.W))
-    val key_data_2 = Input(UInt(8.W))
-    val key_data_3 = Input(UInt(8.W))
+    val keys = Input(Vec(3, UInt(8.W)))
 
     val key_output = Output(UInt(8.W))
   })
@@ -161,11 +159,7 @@ class TopSupervisor(filename:String) extends Module {
   top.io.PortBInput := io.PortBInput
   top.io.PortCLInput := io.PortCLInput
   top.io.PortCUInput := io.PortCUInput
-
-  top.io.key_data_1 := io.key_data_1
-  top.io.key_data_2 := io.key_data_2
-  top.io.key_data_3 := io.key_data_3
-
+  top.io.keys := io.keys
 }
 
 object TK80TestGUI extends JFXApp  {
@@ -281,7 +275,6 @@ object TK80TestGUI extends JFXApp  {
   }
 
   class TK80TestThread(i:Integer) {
-    val aa = i
     var running = true
     val backgroundThread = new Thread {
       setDaemon(true)
@@ -307,10 +300,6 @@ object TK80TestGUI extends JFXApp  {
           var i = peek(c.io.I).U
           var iff1 = 0.U //peek(c.io.IFF).U
           var iff2 = 0.U //peek(c.io.IFF2).U
-          var counter = 0
-          var key = 0
-          var kkk = new scala.util.Random
-          var tt = true
     
           while(peek(c.io.halt_)==1 && running) {
             val machine_state:Int = peek(c.io.machine_state).toInt
@@ -325,10 +314,9 @@ object TK80TestGUI extends JFXApp  {
               i = peek(c.io.I).U
               iff1 = peek(c.io.IFF1).U
               iff2 = peek(c.io.IFF2).U
-
-              poke(c.io.key_data_1, key_data_1)
-              poke(c.io.key_data_2, key_data_2)
-              poke(c.io.key_data_3, key_data_3)
+              poke(c.io.keys(0), key_data_1)
+              poke(c.io.keys(1), key_data_2)
+              poke(c.io.keys(2), key_data_3)
 
               val pc_str = f"${pc.intValue()}%04X" 
               var others_str = ""
