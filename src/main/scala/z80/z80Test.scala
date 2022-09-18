@@ -193,6 +193,8 @@ object TK80TestGUI extends JFXApp  {
   var key_data_3 = 0xFF
 
   class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int) extends Button(name) {
+    prefHeight = 75
+    prefWidth = 75
     onMousePressed = handle {
       value_set(value)
     }
@@ -208,6 +210,7 @@ object TK80TestGUI extends JFXApp  {
       root = new VBox {
         val ho = new TK80TestThread(3)
         children = List(
+          pc_text, addr_text, data_text, others_text,
           new HBox {
             children =  List(
               new Button("StartTest") {
@@ -220,6 +223,9 @@ object TK80TestGUI extends JFXApp  {
                   close()
                 }}
             )
+          },
+          new HBox {
+            prefHeight = 20
           },
           new HBox {
             children = List(
@@ -268,8 +274,8 @@ object TK80TestGUI extends JFXApp  {
           new HBox {
             children =  List (
             )
-          },
-          pc_text, addr_text, data_text, others_text)
+          }
+        )
       }
     }
   }
