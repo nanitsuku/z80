@@ -168,7 +168,7 @@ class TopSupervisor(filename:String) extends Module {
 
 }
 
-object Z80TestGUI extends JFXApp  {
+object TK80TestGUI extends JFXApp  {
   val backend = "verilator"
   var prev_state = -1
   var prev_t_cycle = -1
@@ -209,10 +209,10 @@ object Z80TestGUI extends JFXApp  {
 
   val gui_semaphore = new Semaphore(1)
   stage = new PrimaryStage {
-    title = "Z80TestGUI"
+    title = "TK80TestGUI"
     scene = new Scene() {
       root = new VBox {
-        val ho = new Z80TestThread(3)
+        val ho = new TK80TestThread(3)
         children = List(
           new HBox {
             children =  List(
@@ -222,7 +222,7 @@ object Z80TestGUI extends JFXApp  {
                 }},
               new Button("Quit") {
                 onMouseClicked = handle {
-                  ho.tttt = false
+                  ho.running = false
                   close()
                 }}
             )
@@ -280,9 +280,9 @@ object Z80TestGUI extends JFXApp  {
     }
   }
 
-  class Z80TestThread(i:Integer) {
+  class TK80TestThread(i:Integer) {
     val aa = i
-    var tttt = true
+    var running = true
     val backgroundThread = new Thread {
       setDaemon(true)
       override def run = {
@@ -312,13 +312,12 @@ object Z80TestGUI extends JFXApp  {
           var kkk = new scala.util.Random
           var tt = true
     
-          while(peek(c.io.halt_)==1 && tttt) {
+          while(peek(c.io.halt_)==1 && running) {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
-    
+
             if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
               pc = peek(c.io.PC).U
-
               sp = peek(c.io.SP).U
               ix = peek(c.io.IX).U
               iy = peek(c.io.IY).U
@@ -327,26 +326,24 @@ object Z80TestGUI extends JFXApp  {
               iff1 = peek(c.io.IFF1).U
               iff2 = peek(c.io.IFF2).U
 
+              poke(c.io.key_data_1, key_data_1)
+              poke(c.io.key_data_2, key_data_2)
+              poke(c.io.key_data_3, key_data_3)
 
-               poke(c.io.key_data_1, key_data_1)
-               poke(c.io.key_data_2, key_data_2)
-               poke(c.io.key_data_3, key_data_3)
-
-            val pc_str = f"${pc.intValue()}%04X" 
-            var others_str = ""
-            if (pc.intValue() >= 0x01F9) {
-              others_str = pc_str
-            }
-            val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
-            val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
-//            val others_str = f"${peek(c.io.key_output)}"
-            Platform.runLater( () -> {
-              pc_text.setText(pc_str)
-              addr_text.setText(address_str)
-              data_text.setText(data_str)
-              others_text.setText((others_str))
-            })
- 
+              val pc_str = f"${pc.intValue()}%04X" 
+              var others_str = ""
+              if (pc.intValue() >= 0x01F9) {
+                others_str = pc_str
+              }
+              val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
+              val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
+  //            val others_str = f"${peek(c.io.key_output)}"
+              Platform.runLater( () -> {
+                pc_text.setText(pc_str)
+                addr_text.setText(address_str)
+                data_text.setText(data_str)
+                others_text.setText((others_str))
+              })
             }
             step(1)
     
