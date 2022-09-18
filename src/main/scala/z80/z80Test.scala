@@ -198,6 +198,15 @@ object Z80TestGUI extends JFXApp  {
   var key_data_2 = 0xFF
   var key_data_3 = 0xFF
 
+  class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int) extends Button(name) {
+    onMousePressed = handle {
+      value_set(value)
+    }
+    onMouseReleased = handle {
+      value_set(0xFF)
+    }
+  }
+
   val gui_semaphore = new Semaphore(1)
   stage = new PrimaryStage {
     title = "Z80TestGUI"
@@ -205,154 +214,66 @@ object Z80TestGUI extends JFXApp  {
       root = new VBox {
         val ho = new Z80TestThread(3)
         children = List(
-          new Button("StartTest") {
-            onMouseClicked = handle {
-              ho.startTask
-            }},
-          new Button("Quit") {
-            onMouseClicked = handle {
-              ho.tttt = false
-              close()
-            }},
+          new HBox {
+            children =  List(
+              new Button("StartTest") {
+                onMouseClicked = handle {
+                  ho.startTask
+                }},
+              new Button("Quit") {
+                onMouseClicked = handle {
+                  ho.tttt = false
+                  close()
+                }}
+            )
+          },
           new HBox {
             children = List(
-              new Button("0")  {
-               onMousePressed = handle {
-                key_data_1= 0xFE;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("1")  {
-               onMousePressed = handle {
-                key_data_1 = 0xFD;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("2")  {
-               onMousePressed = handle {
-                key_data_1 = 0xFB;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("3")  {
-               onMousePressed = handle {
-                key_data_1 = 0xF7;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("4")  {
-               onMousePressed = handle {
-                key_data_1 = 0xEF;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("5")  {
-               onMousePressed = handle {
-                key_data_1 = 0xDF;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("6")  {
-               onMousePressed = handle {
-                key_data_1 = 0xBF;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("7")  {
-               onMousePressed = handle {
-                key_data_1 = 0x7F;
-               }
-               onMouseReleased = handle {
-                key_data_1 = 0xFF;
-               }
-              },
-              new Button("8")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xFE;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("9")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xFD;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("A")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xFB;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("B")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xF7;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("C")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xEF;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("D")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xDF;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("E")  {
-                onMousePressed = handle {
-                 key_data_2 = 0xBF;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("F")  {
-                onMousePressed = handle {
-                 key_data_2 = 0x7F;
-                }
-                onMouseReleased = handle {
-                 key_data_2 = 0xFF;
-                }
-              },
-              new Button("ADRS SET")  {
-                onMousePressed = handle {
-                 key_data_3 = 0xFB;
-                }
-                onMouseReleased = handle {
-                 key_data_3 = 0xFF;
-                }
-              }
-             )
+              new ButtokTK80("RET", (vv:Int)=>{key_data_3=vv}, 0xFD),
+              new ButtokTK80("RUN", (vv:Int)=>{key_data_3=vv}, 0xFE),
+              new ButtokTK80("STORE\nDATA", (vv:Int)=>{key_data_3=vv}, 0xBF),
+              new ButtokTK80("LOAD\nDATA", (vv:Int)=>{key_data_3=vv}, 0x7F),
+            )
+          },
+          new HBox {
+            children = List(
+              new ButtokTK80("C", (vv:Int)=>{key_data_2=vv}, 0xEF),
+              new ButtokTK80("D", (vv:Int)=>{key_data_2=vv}, 0xDF),
+              new ButtokTK80("E", (vv:Int)=>{key_data_2=vv}, 0xBF),
+              new ButtokTK80("F", (vv:Int)=>{key_data_2=vv}, 0x7F),
+              new ButtokTK80("ADRS\nSET", (vv:Int)=>{key_data_3=vv}, 0xFB),
+            )
+          },
+          new HBox {
+            children = List(
+              new ButtokTK80("8", (vv:Int)=>{key_data_2=vv}, 0xFE),
+              new ButtokTK80("9", (vv:Int)=>{key_data_2=vv}, 0xFD),
+              new ButtokTK80("A", (vv:Int)=>{key_data_2=vv}, 0xFB),
+              new ButtokTK80("B", (vv:Int)=>{key_data_2=vv}, 0xF7),
+              new ButtokTK80("READ\nINCR", (vv:Int)=>{key_data_3=vv}, 0xEF),
+            )
+          },
+          new HBox {
+            children = List(
+              new ButtokTK80("4", (vv:Int)=>{key_data_1=vv}, 0xEF),
+              new ButtokTK80("5", (vv:Int)=>{key_data_1=vv}, 0xDF),
+              new ButtokTK80("6", (vv:Int)=>{key_data_1=vv}, 0xBF),
+              new ButtokTK80("7", (vv:Int)=>{key_data_1=vv}, 0x7F),
+              new ButtokTK80("READ\nDECR", (vv:Int)=>{key_data_3=vv}, 0xF7),
+            )
+          },
+          new HBox {
+            children = List(
+              new ButtokTK80("0", (vv:Int)=>{key_data_1=vv}, 0xFE),
+              new ButtokTK80("1", (vv:Int)=>{key_data_1=vv}, 0xFD),
+              new ButtokTK80("2", (vv:Int)=>{key_data_1=vv}, 0xFB),
+              new ButtokTK80("3", (vv:Int)=>{key_data_1=vv}, 0xF7),
+              new ButtokTK80("WRITE\nINCR", (vv:Int)=>{key_data_3=vv}, 0xDF),
+            )
+          },
+          new HBox {
+            children =  List (
+            )
           },
           pc_text, addr_text, data_text, others_text)
       }
@@ -412,9 +333,13 @@ object Z80TestGUI extends JFXApp  {
                poke(c.io.key_data_3, key_data_3)
 
             val pc_str = f"${pc.intValue()}%04X" 
+            var others_str = ""
+            if (pc.intValue() >= 0x01F9) {
+              others_str = pc_str
+            }
             val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
             val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
-            val others_str = f"${peek(c.io.key_output)}"
+//            val others_str = f"${peek(c.io.key_output)}"
             Platform.runLater( () -> {
               pc_text.setText(pc_str)
               addr_text.setText(address_str)
