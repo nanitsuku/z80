@@ -75,12 +75,12 @@ object ALUTestGUI extends JFXApp  {
       }
 
     def startTask = {
-        backgroundThread.start()
+      backgroundThread.start()
     }
 
     def runTask= {
       iotesters.Driver.execute(Array(""), () => new ALU()) {
-          c => new ALUTestForGUI(c)
+        c => new ALUTestForGUI(c)
       }
     }
   }
@@ -97,8 +97,11 @@ object ALUTestGUI extends JFXApp  {
   //    tf.setText(s"${"00000"+peek(c.io.flag).toInt.toBinaryString.takeRight(8)}")
   
       step(1)
-      Thread.sleep(50)
-      tf.setText(s"${peek(c.io.output_C)}")
+//      Thread.sleep(50)
+      val ppp = s"${peek(c.io.output_C)}" 
+      Platform.runLater( () -> { 
+        tf.setText(ppp)
+      })
       expect(c.io.output_C, if((i+100)>255) (i+100-256) else (i+100))
     }
   }
