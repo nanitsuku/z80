@@ -90,7 +90,7 @@ object ALUTestGUI extends JFXApp  {
     for( i<- 0x00 to 0xFF by 1) {
       poke(c.io.input_A, i)
       poke(c.io.input_B, 100)
-      poke(c.io.calc_type, alu.add_op)
+      poke(c.io.calc_type, ALU.add_op)
   //    println(s"${peek(c.io.output_C)}")
   
   //    println(s"${"00000"+peek(c.io.flag).toInt.toBinaryString.takeRight(8)}")
@@ -130,12 +130,12 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     Z = if ((intermediate & 255) == 0) 1 else 0
     H = if (intermediatel > 0x0f) 1 else 0
 
-    if(calc_type == alu.add_op|| calc_type == alu.adc_op) {
+    if(calc_type == ALU.add_op|| calc_type == ALU.adc_op) {
       N = 0
       H = if (intermediatel > 0x0f) 1 else 0
       PV = if (((((input_a&0x80)^(input_b&0x80)) == 0) && ((input_a&0x80)!=(intermediate&0x80)))) 1 else 0
       C = if (intermediate>255) 1 else 0
-    } else if (calc_type == alu.sub_op|| calc_type == alu.sbc_op) {
+    } else if (calc_type == ALU.sub_op|| calc_type == ALU.sbc_op) {
       N = 1
       H = if (intermediatel < 0x00) 1 else 0
       PV = if ((((input_a&0x80)^(input_b&0x80)) != 0)  && ((input_a&0x80)!=(intermediate&0x80))) 1 else 0
@@ -152,10 +152,10 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.add_op)
+    poke(c.io.calc_type, ALU.add_op)
     intermediate = i + input_b
     intermediatel = (i&0x0f) + (input_b&0x0f)
-    F = calc_expect(alu.add_op, i, input_b, intermediate, intermediatel)
+    F = calc_expect(ALU.add_op, i, input_b, intermediate, intermediatel)
     step(1)
     println(s"${peek(c.io.output_C)}")
     expect(c.io.flag, F|0x28)
@@ -166,10 +166,10 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.adc_op)
+    poke(c.io.calc_type, ALU.adc_op)
     intermediate = i + input_b + 1
     intermediatel = (i&0x0f) + (input_b&0x0f) + 1
-    F = calc_expect(alu.adc_op, i, input_b, intermediate, intermediatel)
+    F = calc_expect(ALU.adc_op, i, input_b, intermediate, intermediatel)
     step(1)
     println(s"${peek(c.io.output_C)}")
     expect(c.io.flag, F|0x28)
@@ -180,10 +180,10 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.sub_op)
+    poke(c.io.calc_type, ALU.sub_op)
     intermediate = i - input_b
     intermediatel = (i&0x0f) - (input_b&0x0f)
-    F = calc_expect(alu.sub_op, i, input_b, intermediate, intermediatel)
+    F = calc_expect(ALU.sub_op, i, input_b, intermediate, intermediatel)
     step(1)
     println(s"${peek(c.io.output_C)}")
     expect(c.io.flag, F|0x28)
@@ -194,10 +194,10 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.sbc_op)
+    poke(c.io.calc_type, ALU.sbc_op)
     intermediate = i - input_b - 1
     intermediatel = (i&0x0f) - (input_b&0x0f) - 1
-    F = calc_expect(alu.sbc_op, i, input_b, intermediate, intermediatel)
+    F = calc_expect(ALU.sbc_op, i, input_b, intermediate, intermediatel)
     step(1)
     println(s"${peek(c.io.output_C)}")
     printlnFlag((c.io.flag))
@@ -209,7 +209,7 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.and_op)
+    poke(c.io.calc_type, ALU.and_op)
     step(1)
     println(s"${peek(c.io.output_C)}")
     printlnFlag((c.io.flag))
@@ -220,7 +220,7 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.xor_op)
+    poke(c.io.calc_type, ALU.xor_op)
     step(1)
     println(s"${peek(c.io.output_C)}")
     printlnFlag((c.io.flag))
@@ -231,7 +231,7 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.or_op)
+    poke(c.io.calc_type, ALU.or_op)
     step(1)
     println(s"${peek(c.io.output_C)}")
     printlnFlag((c.io.flag))
@@ -242,7 +242,7 @@ class ALUTester(c: ALU) extends PeekPokeTester(c) {
     poke(c.io.input_A, i)
     poke(c.io.input_B, input_b)
     poke(c.io.input_carry, 1)
-    poke(c.io.calc_type, alu.cp_op)
+    poke(c.io.calc_type, ALU.cp_op)
     step(1)
     println(s"${peek(c.io.output_C)}")
     expect(c.io.output_C, i)

@@ -18,25 +18,7 @@ class ALU16 extends Module {
   */
 }
 
-
-class ALU extends Module {
-  val io = IO(new Bundle {
-    val input_A = Input(UInt(8.W))
-    val input_B = Input(UInt(8.W))
-    val input_carry = Input(UInt(1.W))
-    val calc_type = Input(UInt(8.W))
-    val output_C = Output(UInt(8.W))
-    val flag = Output(UInt(8.W))
-    val input_flag = Input(UInt(8.W))
-  })
-
-  val parity2_tbl = VecInit(Seq(1.U,0.U,0.U,1.U))
-  def getParity(temp:UInt):UInt = 
-    parity2_tbl(Cat(
-      parity2_tbl(Cat(parity2_tbl(temp(7,6)), parity2_tbl(temp(5,4)))),
-      parity2_tbl(Cat(parity2_tbl(temp(3,2)), parity2_tbl(temp(1,0))))
-    ))
-
+object ALU extends Enumeration {
   val add_op = 0x80.U
   val adc_op = 0x88.U
   val add_adc_op = 0x08.U
@@ -65,6 +47,25 @@ class ALU extends Module {
   val scf = 0x37.U
   val ccf = 0x37.U
   val scf_or_ccf_op = 0x03.U
+}
+
+class ALU extends Module {
+  val io = IO(new Bundle {
+    val input_A = Input(UInt(8.W))
+    val input_B = Input(UInt(8.W))
+    val input_carry = Input(UInt(1.W))
+    val calc_type = Input(UInt(8.W))
+    val output_C = Output(UInt(8.W))
+    val flag = Output(UInt(8.W))
+    val input_flag = Input(UInt(8.W))
+  })
+
+  val parity2_tbl = VecInit(Seq(1.U,0.U,0.U,1.U))
+  def getParity(temp:UInt):UInt = 
+    parity2_tbl(Cat(
+      parity2_tbl(Cat(parity2_tbl(temp(7,6)), parity2_tbl(temp(5,4)))),
+      parity2_tbl(Cat(parity2_tbl(temp(3,2)), parity2_tbl(temp(1,0))))
+    ))
 
   io.output_C := 0.U
 
@@ -87,7 +88,7 @@ class ALU extends Module {
 
   
   switch(io.calc_type(7,4)) {
-    is(add_adc_op)  {
+    is(ALU.add_adc_op)  {
         temp := Cat(0.U(1.W), io.input_A) + Cat(0.U(1.W), io.input_B) + (io.calc_type(3) & io.input_carry)
         temph := 0.U(16.W) + io.input_A(3,0) + io.input_B(3,0) + (io.calc_type(3) & io.input_carry)
         H := temph(4)
@@ -96,7 +97,7 @@ class ALU extends Module {
         C := temp(8)
         io.output_C := temp
     }
-    is(sub_sbc_op) {
+    is(ALU.sub_sbc_op) {
       temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B) - (io.calc_type(3) & io.input_carry)
       temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0) - (io.calc_type(3) & io.input_carry)
       H := temph(4)
@@ -105,17 +106,17 @@ class ALU extends Module {
       C := temp(8)
       io.output_C := temp
     }
-    is(and_xor_op) {
+    is(ALU.and_xor_op) {
       temp := Mux(io.calc_type(3), io.input_A ^ io.input_B , io.input_A & io.input_B) 
-      H := Mux(io.calc_type === and_op, 1.U, 0.U)
+      H := Mux(io.calc_type === ALU.and_op, 1.U, 0.U)
       PV := getParity(temp)
       N := 0.U
       C := 0.U
       io.output_C := temp
     }
-    is(or_cp_op) {
+    is(ALU.or_cp_op) {
       switch(io.calc_type) {
-        is(or_op) {
+        is(ALU.or_op) {
           temp := io.input_A | io.input_B
           H := 0.U
           PV := getParity(temp)
@@ -123,7 +124,7 @@ class ALU extends Module {
           C := 0.U
           io.output_C := temp
         }
-        is(cp_op) {
+        is(ALU.cp_op) {
           temp := Cat(0.U(1.W), io.input_A) - Cat(0.U(1.W), io.input_B)
           temph := 0.U(16.W) + io.input_A(3,0) - io.input_B(3,0)
           H := temph(4)
@@ -135,15 +136,15 @@ class ALU extends Module {
         }
       }  
     }
-    is(shift_op) {
+    is(ALU.shift_op) {
 
     }
-    is(shift_c_op) {
+    is(ALU.shift_c_op) {
 
     }
-    is(daa_or_cpl_op) {
+    is(ALU.daa_or_cpl_op) {
       switch(io.calc_type) {
-        is(daa) {
+        is(ALU.daa) {
           val Hi = (io.input_flag &  0x10.U) > 0.U
           val Ci = (io.input_flag  & 0x01.U) > 0.U
           val Ni = (io.input_flag  & 0x02.U) > 0.U
@@ -161,7 +162,7 @@ class ALU extends Module {
         }
       }
     }
-    is(scf_or_ccf_op) {
+    is(ALU.scf_or_ccf_op) {
     }
   }
 
@@ -170,4 +171,3 @@ class ALU extends Module {
 
   io.flag := Cat(S, Z, X, H, X, PV, N, C)
 }
-

@@ -226,7 +226,7 @@ class Core extends Module {
   def inc_dec(instruction:UInt) {
     alu.io.input_B := 1.U
     alu.io.input_carry := 0.U
-    alu.io.calc_type := Mux(opcodes(0)(0), alu.sub_op, alu.add_op)
+    alu.io.calc_type := Mux(opcodes(0)(0), ALU.sub_op, ALU.add_op)
     when(instruction === BitPat("b0011010?")) {  // inc/dec (HL)
       val temp = RegInit(0.U)
       // M1(4) -> M2(3) -> MX(1) -> M3(3)   11
