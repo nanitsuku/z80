@@ -191,10 +191,16 @@ object TK80TestGUI extends JFXApp  {
   var key_data_1 = 0xFF
   var key_data_2 = 0xFF
   var key_data_3 = 0xFF
+  var reset_button = 0xFF
 
-  class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int) extends Button(name) {
+  class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int, special:Boolean = false) extends Button(name) {
     prefHeight = 75
     prefWidth = 75
+    
+//    font = Font()
+    val color = if (special) "coral" else "green"
+    val font_size = if (special) "16px" else "40px"
+    style = f"-fx-base: '${color}'; -fx-font: bold ${font_size} 'Aria Black'; -fx-alignment: center; -fx-padding: 0px"
     onMousePressed = handle {
       value_set(value)
     }
@@ -229,10 +235,11 @@ object TK80TestGUI extends JFXApp  {
           },
           new HBox {
             children = List(
-              new ButtokTK80("RET", (vv:Int)=>{key_data_3=vv}, 0xFD),
-              new ButtokTK80("RUN", (vv:Int)=>{key_data_3=vv}, 0xFE),
-              new ButtokTK80("STORE\nDATA", (vv:Int)=>{key_data_3=vv}, 0xBF),
-              new ButtokTK80("LOAD\nDATA", (vv:Int)=>{key_data_3=vv}, 0x7F),
+              new ButtokTK80("RET", (vv:Int)=>{key_data_3=vv}, 0xFD, true),
+              new ButtokTK80("RUN", (vv:Int)=>{key_data_3=vv}, 0xFE, true),
+              new ButtokTK80("STORE\nDATA", (vv:Int)=>{key_data_3=vv}, 0xBF, true),
+              new ButtokTK80("LOAD\nDATA", (vv:Int)=>{key_data_3=vv}, 0x7F, true),
+              new ButtokTK80("RESET", (vv:Int)=>{reset_button=vv}, 0x00, true),
             )
           },
           new HBox {
@@ -241,7 +248,7 @@ object TK80TestGUI extends JFXApp  {
               new ButtokTK80("D", (vv:Int)=>{key_data_2=vv}, 0xDF),
               new ButtokTK80("E", (vv:Int)=>{key_data_2=vv}, 0xBF),
               new ButtokTK80("F", (vv:Int)=>{key_data_2=vv}, 0x7F),
-              new ButtokTK80("ADRS\nSET", (vv:Int)=>{key_data_3=vv}, 0xFB),
+              new ButtokTK80("ADRS\nSET", (vv:Int)=>{key_data_3=vv}, 0xFB, true),
             )
           },
           new HBox {
@@ -250,7 +257,7 @@ object TK80TestGUI extends JFXApp  {
               new ButtokTK80("9", (vv:Int)=>{key_data_2=vv}, 0xFD),
               new ButtokTK80("A", (vv:Int)=>{key_data_2=vv}, 0xFB),
               new ButtokTK80("B", (vv:Int)=>{key_data_2=vv}, 0xF7),
-              new ButtokTK80("READ\nINCR", (vv:Int)=>{key_data_3=vv}, 0xEF),
+              new ButtokTK80("READ\nINCR", (vv:Int)=>{key_data_3=vv}, 0xEF, true),
             )
           },
           new HBox {
@@ -259,7 +266,7 @@ object TK80TestGUI extends JFXApp  {
               new ButtokTK80("5", (vv:Int)=>{key_data_1=vv}, 0xDF),
               new ButtokTK80("6", (vv:Int)=>{key_data_1=vv}, 0xBF),
               new ButtokTK80("7", (vv:Int)=>{key_data_1=vv}, 0x7F),
-              new ButtokTK80("READ\nDECR", (vv:Int)=>{key_data_3=vv}, 0xF7),
+              new ButtokTK80("READ\nDECR", (vv:Int)=>{key_data_3=vv}, 0xF7, true),
             )
           },
           new HBox {
@@ -268,7 +275,7 @@ object TK80TestGUI extends JFXApp  {
               new ButtokTK80("1", (vv:Int)=>{key_data_1=vv}, 0xFD),
               new ButtokTK80("2", (vv:Int)=>{key_data_1=vv}, 0xFB),
               new ButtokTK80("3", (vv:Int)=>{key_data_1=vv}, 0xF7),
-              new ButtokTK80("WRITE\nINCR", (vv:Int)=>{key_data_3=vv}, 0xDF),
+              new ButtokTK80("WRITE\nINCR", (vv:Int)=>{key_data_3=vv}, 0xDF, true),
             )
           },
           new HBox {
@@ -329,6 +336,9 @@ object TK80TestGUI extends JFXApp  {
               if (pc.intValue() >= 0x01F9) {
                 others_str = pc_str
               }
+
+              reset(if (reset_button==0xFF) 0 else 1)
+
               val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
               val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
   //            val others_str = f"${peek(c.io.key_output)}"
