@@ -27,8 +27,8 @@ class Top(filename:String) extends Module {
   val memory = Module(new Memory(filename))
   val key_encoder = Module(new KeyEncoder())
 
-  val inout = Module(new InOut81())
   val c8255a = Module(new C8255A())
+  val bus_connect = Module(new BusConnect(3))
 
   memory.io.imem.MREQ_ := core.io.bus.MREQ_
   memory.io.imem.RD_ := core.io.bus.RD_
@@ -40,17 +40,17 @@ class Top(filename:String) extends Module {
   memory.io.imem.RFSH_ := 0.U
   memory.io.imem.IORQ_ := 0.U
 
-  inout.io.dir1 := !core.io.bus.WR_
-  inout.io.input1 := core.io.bus.data1
-  core.io.bus.data := inout.io.output1
+  bus_connect.io.instruments(0).dir := !core.io.bus.WR_
+  bus_connect.io.instruments(0).input := core.io.bus.data1
+  core.io.bus.data := bus_connect.io.instruments(0).output
 
-  inout.io.dir2 := !core.io.bus.RD_
-  inout.io.input2 := memory.io.imem.data
-  memory.io.imem.data1 := inout.io.output2
+  bus_connect.io.instruments(1).dir := !core.io.bus.RD_
+  bus_connect.io.instruments(1).input := memory.io.imem.data
+  memory.io.imem.data1 := bus_connect.io.instruments(1).output
 
-  inout.io.dir3 := !core.io.bus.IORQ_
-  inout.io.input3 := c8255a.io.datao
-  c8255a.io.datai := inout.io.output3
+  bus_connect.io.instruments(2).dir := !core.io.bus.IORQ_
+  bus_connect.io.instruments(2).input := c8255a.io.datao
+  c8255a.io.datai:= bus_connect.io.instruments(2).output
 
   c8255a.io.CS_ := !(((core.io.bus.addr & 0xF8.U) === 0x0F8.U) && !core.io.bus.IORQ_)
   c8255a.io.A0 := core.io.bus.addr(0)
@@ -75,6 +75,7 @@ class Top(filename:String) extends Module {
 
   io.address_ := core.io.bus.addr
   io.data_ := core.io.bus.data
+
 
   dontTouch(io)
   dontTouch(c8255a.io.PortAInput)
