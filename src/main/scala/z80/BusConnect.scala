@@ -30,11 +30,9 @@ class BusConnect(size:Int = 2, width:Int = 8) extends BlackBox with HasBlackBoxI
     |${lists.map(n => f"\tinput ${name_dirs_(n)}").mkString(",\n")}
     |);
     |
-    |wire [${ind}:0] output_;
+    |${lists.map(a => f"wire [${ind}:0] output_${a}_ = " + (lists.withFilter(b => b!=a).map(n => f"(${name_dirs_(n)}?${name_input(n)}:${width}'Z)").mkString("|"))).mkString(";\n")};
     |
-    |wire output_ = ${lists.map(n => f"(${name_dirs_(n)}?${name_input(n)}:${width}'Z)").mkString("|")};
-    |
-    |${lists.map(n => f"assign ${name_output_(n)} = output_").mkString(";\n")};
+    |${lists.map(n => f"assign ${name_output_(n)} = output_${n}_").mkString(";\n")};
     |
     |endmodule
     """.stripMargin)
