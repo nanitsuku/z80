@@ -5,7 +5,7 @@ import chisel3.util._
 
 class Top(filename:String) extends Module {
   val io = IO(new Bundle {
-   val data_ = Output(UInt(8.W))
+    val data_ = Output(UInt(8.W))
     val address_ = Output(UInt(8.W))
 
     val PortAOutput = Output(UInt(8.W))
@@ -76,6 +76,10 @@ class Top(filename:String) extends Module {
   io.address_ := core.io.bus.addr
   io.data_ := core.io.bus.data
 
+  val clock2 = RegInit(0.U(1.W))
+  clock2 := clock2 + 1.U(2.W)
+
+  core.io.clock2 := clock2(0).asClock()
 
   dontTouch(io)
   dontTouch(c8255a.io.PortAInput)
@@ -91,4 +95,8 @@ class Top(filename:String) extends Module {
   dontTouch(key_encoder.io.selector)
 
   dontTouch(core.io.bus.M1_)
+
+  dontTouch(clock2)
+  dontTouch(core.io.clock2)
+  dontTouch(core.io.bus.RFSH_)
 }

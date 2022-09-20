@@ -8,6 +8,8 @@ class Core extends Module {
 
   val io = IO(new Bundle {
     val bus = Flipped(new ImemPortIo())
+
+    val clock2 = Input(Clock())
 //    val exit = Output(Bool())
 //    val M1_ = Output(Bool())
   })
@@ -437,7 +439,6 @@ class Core extends Module {
     switch (machine_state) {
       is (M1_state) {
         when(m_t_cycle === 2.U) {
-//          PC_next := PC_next + 1.U
         } .elsewhen(m_t_cycle === 3.U) {
           opcode_index := 1.U
           machine_state_next := M2_state
@@ -1334,34 +1335,36 @@ def ld_rpp_a(opcode:UInt) {
       PC_next := PC_next + 1.U
     }
     is(M3_state) {
-      when(opcode_index === 1.U || (opcode_index === 3.U && opcode(4))) {
+      when(opcode(4)) {
         io.bus.data1 := A
+
         machine_state_next := M1_state
-        opcode_index := 0.U
-      } .elsewhen((opcode_index === 3.U || opcode_index === 4.U) && ~opcode(4)) {
-        when(m_t_cycle === 2.U) {
+        when(m_t_cycle === 3.U) {
+          when(fallingedge(io.clock2.asBool)) {
+            opcode_index := 0.U
+          }
+        }
+      } otherwise {
+        when(m_t_cycle === 3.U) {
+          when(fallingedge(io.clock2.asBool)) {
+            opcode_index := Mux(opcode_index < 4.U, opcode_index + 1.U, 0.U)
+          }
+        }
         switch(opcode_index) {
           is(3.U) {
             io.bus.data1 := L
-//            when(risingedge(clock.asBool()) && m_t_cycle === 3.U) {
-//            when(m_t_cycle === 3.U) {
-            mem_refer_addr := mem_refer_addr + 1.U
-            opcode_index := opcode_index + 1.U
-//            }
-          }
+            when(fallingedge(io.clock2.asBool) && m_t_cycle === 3.U) {
+              mem_refer_addr := mem_refer_addr + 1.U
+            }
+          } 
           is(4.U) {
-            io.bus.data1 := H 
-//            when(risingedge(clock.asBool()) && m_t_cycle === 3.U) {
-//            when(m_t_cycle === 3.U) {
-            machine_state_next := M1_state
-            opcode_index := 0.U
-//            }
-          }
+            io.bus.data1 := H
+            when(fallingedge(io.clock2.asBool)) {
+              machine_state_next := M1_state
+            }
+          } 
         }
       }
-      }/* .otherwise {
-        opcode_index := opcode_index + 1.U
-      }*/
     }
   }
 }
@@ -1773,66 +1776,85 @@ def ei_di(opcode:UInt) {
 
       // M1 State
       is(M1_state)  {
-        when(m_t_cycle < 4.U) {
-          m_t_cycle := m_t_cycle + 1.U
-        } otherwise {
-          m_t_cycle := 1.U
-          R := Cat(R(7), (R(6,0) + 1.U)&0x7F.U)  // for refresh register
+        when(m_t_cycle <= 4.U) {
+          when (fallingedge(io.clock2.asBool)) {
+            m_t_cycle := Mux(m_t_cycle<4.U, m_t_cycle + 1.U, 1.U)
+
+            when(m_t_cycle === 4.U) {
+              R := Cat(R(7), (R(6,0) + 1.U)&0x7F.U)  // for refresh register
+            }
+          }
         }
 
         when(m_t_cycle === 1.U) {
           // fetch
-          io.bus.addr := PC_next
-          io.bus.MREQ_ := 1.B
+//          io.bus.MREQ_ := 0.B
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
-          when(fallingedge(clock.asBool)) {
+          when (fallingedge(io.clock2.asBool)) {
+            io.bus.addr := PC_next
+//            io.bus.MREQ_ := 1.B
+            io.bus.MREQ_ := 0.B
+            io.bus.RD_ := 0.B
+            opcodes(opcode_index) := io.bus.data //io.dd.byte
+          }
+          when(fallingedge(io.clock2.asBool())) {
             io.bus.MREQ_ := 0.B
             io.bus.RD_ := 0.B
           }
-          opcodes(opcode_index) := io.bus.data //io.dd.byte
         } .elsewhen(m_t_cycle === 2.U) {
 //          io.bus.addr := PC_next
-          PC_next := PC_next + 1.U
+          io.bus.RD_ := 0.B
           io.bus.MREQ_ := 0.B
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
-          io.bus.RD_ := 0.B
-          decode()
+          when (fallingedge(io.clock2.asBool)) {
+            PC_next := PC_next + 1.U
+//            decode()
+          }
         } .elsewhen(m_t_cycle === 3.U) {
           // refresh cycle1
-          io.bus.addr := Cat(I, R&0x7F.U)
-          io.bus.MREQ_ := 1.B
-          io.bus.M1_ := 1.B
           io.bus.RFSH_ := 0.B
-          when(fallingedge(clock.asBool)) {
+          when (fallingedge(io.clock2.asBool)) {
+            io.bus.addr := Cat(I, R&0x7F.U)
+            io.bus.MREQ_ := 0.B
+            io.bus.M1_ := 1.B
+            PC := PC_next
+            decode()
+          }
+          when(fallingedge(io.clock2.asBool())) {
+            io.bus.addr := Cat(I, R&0x7F.U)
             io.bus.MREQ_ := 0.B
           }
-          PC := PC_next
-          decode()
         } .elsewhen(m_t_cycle === 4.U) {
           // refresh cycle2
-          io.bus.addr := Cat(I, R&0x7F.U)
           io.bus.MREQ_ := 0.B
-          io.bus.M1_ := 1.B
           io.bus.RFSH_ := 0.B
-          when(fallingedge(clock.asBool)) {
+          io.bus.addr := Cat(I, R&0x7F.U)
+          when (fallingedge(io.clock2.asBool)) {
             io.bus.MREQ_ := 1.B
-          }
+            io.bus.M1_ := 1.B
           machine_state := machine_state_next
+          }
+          /*
+          when(fallingedge(clock.asBool)) {
+//            io.bus.MREQ_ := 1.B
+          }
+          */
         }
       }
       // M2 state
       is(M2_state) {
         io.bus.addr := mem_refer_addr
-        when(m_t_cycle < 3.U) {
-          m_t_cycle := m_t_cycle + 1.U
+        when(m_t_cycle <= 3.U) {
+          when (fallingedge(io.clock2.asBool)) {
+            m_t_cycle := Mux(m_t_cycle < 3.U, m_t_cycle + 1.U, 1.U)
+          }
         }
   
-        io.bus.RD_ := 1.B
         when(m_t_cycle === 1.U) {
           io.bus.MREQ_ := 1.B
-          when(fallingedge(clock.asBool)) {
+          when(fallingedge(io.clock2.asBool())) {
             io.bus.MREQ_ := 0.B
             io.bus.RD_ := 0.U
           }
@@ -1840,35 +1862,38 @@ def ei_di(opcode:UInt) {
         } .elsewhen(m_t_cycle === 2.U) {
           io.bus.RD_ := 0.U
           io.bus.MREQ_ := 0.B
-          decode()
+          when(fallingedge(io.clock2.asBool())) {
+            decode()
+          }
         } .elsewhen(m_t_cycle === 3.U) {
           io.bus.MREQ_ := 0.B
           io.bus.RD_ := 0.U
 
-          when(fallingedge(clock.asBool)) {
+          when(fallingedge(io.clock2.asBool())) {
             io.bus.RD_ := 1.U
             io.bus.MREQ_ := 1.B
           }
-          PC := PC_next
-          m_t_cycle := 1.U
-          machine_state := machine_state_next
+          when (fallingedge(io.clock2.asBool)) {
+            machine_state := machine_state_next
+            PC := PC_next
+          }
         }
       }
       is(M3_state) {
         io.bus.addr := mem_refer_addr
-        when(m_t_cycle < 3.U) {
-          m_t_cycle := m_t_cycle + 1.U
+        when(m_t_cycle <= 3.U && fallingedge(io.clock2.asBool())) {
+          m_t_cycle := Mux(m_t_cycle < 3.U, m_t_cycle + 1.U, 1.U)
         }
   
         when(m_t_cycle === 1.U) {
           io.bus.WR_ := 1.B
           // write memory 
           io.bus.MREQ_ := 1.B
-          when(fallingedge(clock.asBool)) {
+          when(fallingedge(io.clock2.asBool)) {
             io.bus.MREQ_ := 0.B
           }
         } .elsewhen(m_t_cycle === 2.U) {
-          when(fallingedge(clock.asBool)) {
+          when(fallingedge(io.clock2.asBool)) {
             io.bus.WR_ := 0.B
           }
           io.bus.MREQ_ := 0.B
@@ -1876,25 +1901,34 @@ def ei_di(opcode:UInt) {
         } .elsewhen(m_t_cycle === 3.U) {
           io.bus.MREQ_ := 0.B
           io.bus.WR_ := 0.B
-          when(fallingedge(clock.asBool)) {
+          decode()
+          when(fallingedge(io.clock2.asBool)) {
             io.bus.WR_ := 1.B
           }
-          decode()
+          when(fallingedge(io.clock2.asBool)) {
           PC := PC_next
-          m_t_cycle := 1.U
+//          m_t_cycle := 1.U
           machine_state := machine_state_next
+          }
         }
       }
       is(MX_state_8) {
 //        decode()
-        when(m_t_cycle < dummy_cycle) {
-          m_t_cycle := m_t_cycle + 1.U
+        when(m_t_cycle <= dummy_cycle && fallingedge(io.clock2.asBool)) {
+          m_t_cycle := Mux(m_t_cycle < dummy_cycle, m_t_cycle + 1.U, 1.U)
+
+          when(m_t_cycle === dummy_cycle) {
+            machine_state := machine_state_next
+            PC := PC_next
+          }
         } .otherwise {
 //          when(fallingedge(clock.asBool())) {
 //          when(risingedge(clock.asBool())) {
-          m_t_cycle := 1.U
-          machine_state := machine_state_next
-          PC := PC_next
+
+////          m_t_cycle := 1.U
+////          machine_state := machine_state_next
+////          PC := PC_next
+
  //         }
         }
         decode()
