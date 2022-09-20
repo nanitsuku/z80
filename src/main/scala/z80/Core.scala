@@ -786,37 +786,34 @@ class Core extends Module {
     val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
     switch (machine_state) {
       is (M1_state) {
-        switch(m_t_cycle) {
-          is(2.U) {
-            when(opcodes(0) === BitPat("b11101001")) {
-              // JP (HL)
-              machine_state_next := M1_state
-              opcode_index := 0.U
-              PC_next := Cat(regfiles_front(H_op), regfiles_front(L_op))
-            } .otherwise {
-              machine_state_next := M2_state
-              opcode_index := 1.U
-      //        PC_next := PC_next + 1.U
-              mem_refer_addr := PC_next + 1.U
-            }
-         }
+        when(opcodes(0) === BitPat("b11101001")) {
+          // JP (HL)
+//          machine_state_next := M1_state
+//          opcode_index := 0.U
+          PC_next := Cat(regfiles_front(H_op), regfiles_front(L_op))
+//          PC := PC_next
+//          mem_refer_addr := PC
+        } .otherwise {
+          machine_state_next := M2_state
+          opcode_index := 1.U
+          mem_refer_addr := PC_next
         }
       }
       is (M2_state) {
         opcodes(opcode_index) := io.bus.data
-//        mem_refer_addr := PC_next
+        mem_refer_addr := PC_next + 1.U
+        when(fallingedge(io.clock2.asBool) && m_t_cycle === 2.U) {
+          PC_next := PC_next + 1.U
+        }
+
         when(m_t_cycle === 2.U) {
-          mem_refer_addr := PC_next + 1.U
           switch(opcode_index) {
             is(1.U) {
               opcode_index := opcode_index + 1.U
-              PC_next := PC_next + 1.U
             }
             is(2.U) {
               opcode_index := 0.U
               machine_state_next := M1_state
-//              PC_next := Cat(opcodes(2), opcode(1))
-//              PC_next := Cat(opcodkkkes(1)(8.W), opcode(2)(8.W))
 
               val cond = MuxCase(0.B,
                 Array(
@@ -831,21 +828,16 @@ class Core extends Module {
                   (op === "b0111".U && S_flag === 1.U) -> 1.B,
                 )
               )
-
               when(cond === 0.B) {
                 PC_next := PC_next + 1.U
               } .otherwise {
                 PC_next := Cat(opcodes(2),opcodes(1))
               }
-
-//              PC_next := Cat(opcodes(1),opcodes(2))
-//              PC := PC_next
             }
           }
         }
       }
     }
-//    mem_refer_addr := PC_next
   }
 
   def halt(opcode:UInt) {
@@ -1399,10 +1391,12 @@ def jr(opcode:UInt) {
       PC_next := PC_next + 1.U
     }
     is(MX_state_8) {
-      when((opcode===0x10.U) && (m_t_cycle === 1.U)) {
+      // djnz
+      when((opcode===0x10.U) && (m_t_cycle === 1.U) &&fallingedge(io.clock2.asBool)) {
         regfiles_front(B_op) := regfiles_front(B_op) - 1.U
       }
-      when(m_t_cycle===(dummy_cycle-1.U)) {
+      when(m_t_cycle===(dummy_cycle-2.U)&&fallingedge(io.clock2.asBool)) {
+        mem_refer_addr := PC_next
         machine_state_next := M1_state
         opcode_index := 0.U
         when(cond || (opcode===0x10.U && (regfiles_front(B_op))=/=0.U)) {
@@ -1730,6 +1724,7 @@ def ei_di(opcode:UInt) {
         when(m_t_cycle === 1.U) {
           // fetch
 //          io.bus.MREQ_ := 0.B
+          PC := PC_next
           io.bus.M1_ := 0.B
           io.bus.RFSH_ := 1.B
           when (fallingedge(io.clock2.asBool)) {
@@ -1760,7 +1755,7 @@ def ei_di(opcode:UInt) {
             io.bus.addr := Cat(I, R&0x7F.U)
             io.bus.MREQ_ := 0.B
             io.bus.M1_ := 1.B
-            PC := PC_next
+//            PC := PC_next
             decode()
           }
           when(fallingedge(io.clock2.asBool())) {
@@ -1775,7 +1770,8 @@ def ei_di(opcode:UInt) {
           when (fallingedge(io.clock2.asBool)) {
             io.bus.MREQ_ := 1.B
             io.bus.M1_ := 1.B
-          machine_state := machine_state_next
+            PC := PC_next
+            machine_state := machine_state_next
           }
           /*
           when(fallingedge(clock.asBool)) {
