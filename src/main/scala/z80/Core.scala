@@ -1320,21 +1320,15 @@ def ld_sp_hl(opcode:UInt) {
 def ex_af_afp(opcode:UInt) {
   val tmp = Reg(Vec(2, UInt(8.W)))
 
-  switch(m_t_cycle) {
-    is(2.U) {
-      tmp(0) := regfiles_front(A_op)
-      tmp(1) := regfiles_front(F_op)
-      regfiles_front(A_op) := regfiles_back(A_op) 
-      regfiles_front(F_op) := regfiles_back(F_op) 
-    }
-    is(3.U) {
-      regfiles_back(A_op) := tmp(0)
-      regfiles_back(F_op) := tmp(1)
-      machine_state_next := M1_state
-    }
-    is(4.U) {
-    }
-  }
+  tmp(0) := regfiles_front(A_op)
+  tmp(1) := regfiles_front(F_op)
+  regfiles_front(A_op) := regfiles_back(A_op) 
+  regfiles_front(F_op) := regfiles_back(F_op) 
+
+  regfiles_back(A_op) := tmp(0)
+  regfiles_back(F_op) := tmp(1)
+
+  machine_state_next := M1_state
 }
 
 def cf(opcode:UInt) {
@@ -1497,6 +1491,7 @@ def ei_di(opcode:UInt) {
 
 
   def ex_spa_hl(opcode:UInt) {
+    // EX (SP,HL)
     // M1(4) M2(3) M2(3) MX(3) M3(3) M3(3)   5/19
     val tmph = Reg(UInt(8.W))
     val tmpl = Reg(UInt(8.W))
