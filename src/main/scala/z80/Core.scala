@@ -260,7 +260,7 @@ class Core extends Module {
         }
         is(M3_state) {
           machine_state_next := M1_state
-          when(m_t_cycle === 2.U) {
+          when(m_t_cycle === 3.U) {
             io.bus.data1 := temp
             mem_refer_addr := PC_next
             opcode_index := 0.U
