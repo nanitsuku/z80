@@ -1144,42 +1144,34 @@ val regs_pair_data = WireDefault(MuxCase(0x0000.U,
     )))
 
 def add16(opcode:UInt) {
+  // ADD HL,(BC|DE|HL|SP)
+
   var result = RegInit(0.U(16.W))
   var F_ = RegInit(0.U(8.W))
 
   switch(machine_state) {
     is(M1_state) {
       when(m_t_cycle===3.U) {
-         machine_state_next := MX_state_8
-         dummy_cycle := 8.U
-  val to_be_added = regs_pair_data
-  val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
-  val HL_S_ = ( HL_ & 0x0FFF.U)
-
-  val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
-
-  val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
-  val added_s = HL_S_ + to_be_added_S_
-
-//  val F_ = (regfiles_front(F_op) & "0b11101100".U)// + (added_s(12) << 1) + added(16)
-  result := added(15,0)
-  F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
-
-       } .elsewhen(m_t_cycle===4.U) {
-         m_t_cycle := 1.U 
+        machine_state_next := MX_state_8
+        dummy_cycle := 8.U
+        val to_be_added = regs_pair_data
+        val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
+        val HL_S_ = ( HL_ & 0x0FFF.U)
+       
+        val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
+       
+        val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
+        val added_s = HL_S_ + to_be_added_S_
+       
+        result := added(15,0)
+        F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
       }
     }
     is(MX_state_8) {
-      when(m_t_cycle<(dummy_cycle-1.U)) {
-        m_t_cycle := m_t_cycle + 1.U
-     } .elsewhen(m_t_cycle<dummy_cycle) {
-        machine_state_next := M1_state
-        regfiles_front(H_op) := result(15,8)
-        regfiles_front(L_op) := result(7,0)
-        regfiles_front(F_op) := F_
-     } .otherwise {
-        m_t_cycle := 1.U
-     }
+      machine_state_next := M1_state
+      regfiles_front(H_op) := result(15,8)
+      regfiles_front(L_op) := result(7,0)
+      regfiles_front(F_op) := F_
     }
   }
 }
