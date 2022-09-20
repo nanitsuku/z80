@@ -1508,6 +1508,8 @@ def ei_di(opcode:UInt) {
             tmpl := L
           }
           is(3.U) {
+            tmph := H
+            tmpl := L
             mem_refer_addr := SP
             machine_state_next := M2_state
             opcode_index := opcode_index + 1.U
@@ -1534,43 +1536,23 @@ def ei_di(opcode:UInt) {
         machine_state_next := M3_state
       }
       is(M3_state) {
+        when(m_t_cycle === 3.U && fallingedge(io.clock2.asBool)) {
+          opcode_index := Mux(opcode_index < 4.U, opcode_index + 1.U, 0.U)
+        }
         switch(opcode_index) {
           is(3.U) {
-              io.bus.data1:= tmpl
-            when(m_t_cycle === 2.U) {
-//              io.bus.data1:= tmpl
-            } .otherwise {
-              when(fallingedge(clock.asBool())) {
-              mem_refer_addr := SP + 1.U
-//            io.bus.data1:= tmph
+            io.bus.data1:= tmpl
+            when(m_t_cycle === 3.U) {
+              when(fallingedge(io.clock2.asBool())) {
+                mem_refer_addr := SP + 1.U
               }
-              opcode_index := opcode_index + 1.U
             }
           }
           is(4.U) {
-              io.bus.data1:= tmph
-            when(m_t_cycle === 2.U) {
-//              io.bus.data1:= tmph
-
-/*
-              machine_state_next := M1_state
-              opcode_index := 0.U
-              */
- //             mem_refer_addr := SP + 1.U
-              when(fallingedge(clock.asBool())) {
-                 machine_state_next := M1_state
-              opcode_index := 0.U
-              io.bus.data1:= tmph
-              }
-            } .otherwise {
+            io.bus.data1:= tmph
+            when(m_t_cycle === 3.U) {
+                io.bus.data1:= tmph
                 machine_state_next := M1_state
-              opcode_index := 0.U
-              io.bus.data1:= tmph
-              when(risingedge(clock.asBool())) {
-             io.bus.data1:= tmph
-              }
-//              opcode_index := opcode_index + 1.U
-//              io.bus.data1:= tmph
             }
           }
         }
