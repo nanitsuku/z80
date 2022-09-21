@@ -212,7 +212,7 @@ object TK80TestGUI extends JFXApp  {
   val gui_semaphore = new Semaphore(1)
   stage = new PrimaryStage {
     title = "TK80TestGUI"
-    scene = new Scene() {
+    scene = new Scene(75*5, 600) {
       root = new VBox {
         val ho = new TK80TestThread(3)
         children = List(
@@ -222,12 +222,14 @@ object TK80TestGUI extends JFXApp  {
               new Button("StartTest") {
                 onMouseClicked = handle {
                   ho.startTask
-                }},
+                }
+              },
               new Button("Quit") {
                 onMouseClicked = handle {
                   ho.running = false
                   close()
-                }}
+                }
+              }
             )
           },
           new HBox {
