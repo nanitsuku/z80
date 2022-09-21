@@ -822,9 +822,10 @@ class Core extends Module {
   def in_out(opcode:UInt) {
     switch(machine_state) {
       is(M1_state) {
-        when(m_t_cycle===2.U) {
+        when(m_t_cycle===3.U) {
           machine_state_next := M2_state;
-          mem_refer_addr := PC_next + 1.U
+//          mem_refer_addr := PC_next + 1.U
+          mem_refer_addr := PC_next
           opcode_index := opcode_index + 1.U
         }
       }
@@ -832,7 +833,9 @@ class Core extends Module {
         when(m_t_cycle===2.U) {
           machine_state_next := MINOUT_state
           mem_refer_addr := Cat(A, opcodes(1))
-          PC_next := PC_next + 1.U
+          when(fallingedge(io.clock2.asBool)) {
+            PC_next := PC_next + 1.U
+          }
           when(opcodes(0)(3)===0.U) {
             io.bus.data1 := regfiles_front(A_op)
           }
@@ -855,8 +858,8 @@ class Core extends Module {
               io.bus.IORQ_ := 0.U
               when(opcodes(0)(3)===1.U) { // IN A,(N)
                 io.bus.RD_ := 0.U
-                A := io.bus.data
-                regfiles_front(A_op) := io.bus.data
+//                A := io.bus.data
+////                regfiles_front(A_op) := io.bus.data
               } otherwise { // OUT A,(N)
                 io.bus.WR_ := 0.U
               }
@@ -865,14 +868,14 @@ class Core extends Module {
           is(3.U) {
             when(opcodes(0)(3)===1.U) {
               A := io.bus.data
-              regfiles_front(A_op) := io.bus.data
+////              regfiles_front(A_op) := io.bus.data
             } otherwise {
               io.bus.data1 := A
             }
             io.bus.IORQ_ :=0.U
             when(opcodes(0)(3)===1.U) { // IN A,(N)
               io.bus.RD_ := 0.U
-                regfiles_front(A_op) := io.bus.data
+              regfiles_front(A_op) := io.bus.data
               A := io.bus.data
             } otherwise { // OUT A,(N)
               io.bus.WR_ := 0.U
@@ -881,7 +884,8 @@ class Core extends Module {
           }
           is(4.U) {
             when(opcodes(0)(3)===1.U) {
-              A := io.bus.data
+//              A := io.bus.data
+////              regfiles_front(A_op) := io.bus.data
             } otherwise {
               io.bus.data1 := A
             }
@@ -1736,11 +1740,20 @@ def ei_di(opcode:UInt) {
       }
       is(MINOUT_state) {
 //        machine_state := machine_state_next
+        when(m_t_cycle <= 5.U && fallingedge(io.clock2.asBool)) {
+          m_t_cycle := Mux(m_t_cycle < 5.U, m_t_cycle + 1.U, 1.U)
+        }
+        /*
         when(m_t_cycle < 4.U) {
           m_t_cycle := m_t_cycle + 1.U
         } .otherwise {
           m_t_cycle := 1.U
           machine_state := machine_state_next
+        }
+        */
+        when(m_t_cycle === 4.U && fallingedge(io.clock2.asBool)) {
+          machine_state := machine_state_next
+          m_t_cycle := 1.U
         }
         decode()
       }
