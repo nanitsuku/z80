@@ -119,18 +119,10 @@ class Core extends Module {
     switch(machine_state) {
       // fetch state
       is(M1_state) {
-        switch(m_t_cycle) {
-          is(2.U) {
-            opcode_index := opcode_index + 1.U
-          }
-          is(3.U) {
-            when(opcode_index===1.U) {
-//              machine_state_next := M1_state
-            } .otherwise {
-              machine_state_next := M2_state
-              mem_refer_addr := PC_next
-            }
-          }
+        when(opcode_index===1.U) {
+        } .otherwise {
+          machine_state_next := M2_state
+          mem_refer_addr := PC_next
         }
       }
       // read memory
@@ -285,16 +277,14 @@ class Core extends Module {
     // LD HL,(nn)     M1(4) M2(3) M2(3) M2(3) M2(3)
     switch(machine_state) {
       is(M1_state) {
-        when(m_t_cycle === 3.U) {
-          when(opcode(5)) { // ld hl,(**) or ld a,(**)
-            mem_refer_addr := PC_next
-            PC_next := PC_next + 1.U
-          } .otherwise { // ld A,(BC|DE)
-            mem_refer_addr := Mux(opcode(4), Cat(D, E), Cat(B, C))
-          }
-          machine_state_next := M2_state
-          opcode_index := opcode_index + 1.U
+        when(opcode(5)) { // ld hl,(**) or ld a,(**)
+          mem_refer_addr := PC_next
+          PC_next := PC_next + 1.U
+        } .otherwise { // ld A,(BC|DE)
+          mem_refer_addr := Mux(opcode(4), Cat(D, E), Cat(B, C))
         }
+        machine_state_next := M2_state
+        opcode_index := opcode_index + 1.U
       }
       is(M2_state) {
         switch(opcode_index) {
@@ -438,15 +428,12 @@ class Core extends Module {
 //    printf(p"ld_a_n${instruction}\n")
     switch (machine_state) {
       is (M1_state) {
-        when(m_t_cycle === 2.U) {
-        } .elsewhen(m_t_cycle === 3.U) {
-          opcode_index := 1.U
-          machine_state_next := M2_state
-          when(opcodes(0)(6)===0.U) {
-            mem_refer_addr := PC_next
-          } otherwise {
-            mem_refer_addr := Cat(H, L)
-          }
+        opcode_index := 1.U
+        machine_state_next := M2_state
+        when(opcodes(0)(6)===0.U) {
+          mem_refer_addr := PC_next
+        } otherwise {
+          mem_refer_addr := Cat(H, L)
         }
       }
       is (M2_state) {
@@ -513,13 +500,11 @@ class Core extends Module {
       is(1.B) { // PUSH
         switch(machine_state) {
           is(M1_state) {
-            when(m_t_cycle === 3.U) {
-              opcode_index := opcode_index + 1.U
-              machine_state_next := MX_state_8
-              dummy_cycle := 2.U
-              mem_refer_addr := SP - 1.U
-              SP := SP - 1.U
-            }
+            opcode_index := opcode_index + 1.U
+            machine_state_next := MX_state_8
+            dummy_cycle := 2.U
+            mem_refer_addr := SP - 1.U
+            SP := SP - 1.U
           }
           is(MX_state_8) {
             machine_state_next := M3_state
@@ -563,83 +548,81 @@ class Core extends Module {
 
     switch(machine_state) {
       is(M1_state) {
-        when(m_t_cycle===3.U) {
-          src_reg := regfiles_front(A_op)
-          switch(opcode(7,4)&"b1011".U) {
-            is(0x08.U) {
-              // add or adc
-              when(opcode(6) === 1.U) {
-                // n
-                mem_refer_addr := PC_next
-                PC_next := PC_next + 1.U
-                machine_state_next := M2_state
-                opcode_index := opcode_index + 1.U
-                alu.io.input_B := io.bus.data
-              } .elsewhen(opcode(2,0) === 0x06.U) {
-                // add/adc  a,(HL)
-                mem_refer_addr := Cat(H,L)
-                machine_state_next := M2_state
-                alu.io.input_B := io.bus.data
-                opcode_index := opcode_index + 1.U
-              }
-            }
-            is(0x09.U) {
-              // sub or sbc
-              when(opcode(6) === 1.U) {
-                // n
-                mem_refer_addr := PC_next
-                PC_next := PC_next + 1.U
-                machine_state_next := M2_state
-                opcode_index := opcode_index + 1.U
-                alu.io.input_B := io.bus.data
-              } .elsewhen(opcode(2,0) === 0x06.U) {
-                // sub/sbc a,(HL)
-                mem_refer_addr := Cat(H,L)
-                machine_state_next := M2_state
-                alu.io.input_B := io.bus.data
-                opcode_index := opcode_index + 1.U
-              }
-           }
-            is(0x0A.U) {
-              // and or xor
-              when(opcode(6) === 1.U) {
-                // n
-                mem_refer_addr := PC_next
-                PC_next := PC_next + 1.U
-                machine_state_next := M2_state
-                opcode_index := opcode_index + 1.U
-                alu.io.input_B := io.bus.data
-              } .elsewhen(opcode(2,0) === 0x06.U) {
-                // and/xor a,(HL)
-                mem_refer_addr := Cat(H,L)
-                machine_state_next := M2_state
-                alu.io.input_B := io.bus.data
-                opcode_index := opcode_index + 1.U
-              }
-            }
-            is(0x0B.U) {
-              // or or cp
-              when(opcode(6) === 1.U) {
-                // n
-                mem_refer_addr := PC_next
-                PC_next := PC_next + 1.U
-                machine_state_next := M2_state
-                opcode_index := opcode_index + 1.U
-                alu.io.input_B := io.bus.data
-              } .elsewhen(opcode(2,0) === 0x06.U) {
-                // or/cp a,(HL)
-                mem_refer_addr := Cat(H,L)
-                machine_state_next := M2_state
-                alu.io.input_B := io.bus.data
-                opcode_index := opcode_index + 1.U
-              }
+        src_reg := regfiles_front(A_op)
+        switch(opcode(7,4)&"b1011".U) {
+          is(0x08.U) {
+            // add or adc
+            when(opcode(6) === 1.U) {
+              // n
+              mem_refer_addr := PC_next
+              PC_next := PC_next + 1.U
+              machine_state_next := M2_state
+              opcode_index := opcode_index + 1.U
+              alu.io.input_B := io.bus.data
+            } .elsewhen(opcode(2,0) === 0x06.U) {
+              // add/adc  a,(HL)
+              mem_refer_addr := Cat(H,L)
+              machine_state_next := M2_state
+              alu.io.input_B := io.bus.data
+              opcode_index := opcode_index + 1.U
             }
           }
+          is(0x09.U) {
+            // sub or sbc
+            when(opcode(6) === 1.U) {
+              // n
+              mem_refer_addr := PC_next
+              PC_next := PC_next + 1.U
+              machine_state_next := M2_state
+              opcode_index := opcode_index + 1.U
+              alu.io.input_B := io.bus.data
+            } .elsewhen(opcode(2,0) === 0x06.U) {
+              // sub/sbc a,(HL)
+              mem_refer_addr := Cat(H,L)
+              machine_state_next := M2_state
+              alu.io.input_B := io.bus.data
+              opcode_index := opcode_index + 1.U
+            }
+         }
+          is(0x0A.U) {
+            // and or xor
+            when(opcode(6) === 1.U) {
+              // n
+              mem_refer_addr := PC_next
+              PC_next := PC_next + 1.U
+              machine_state_next := M2_state
+              opcode_index := opcode_index + 1.U
+              alu.io.input_B := io.bus.data
+            } .elsewhen(opcode(2,0) === 0x06.U) {
+              // and/xor a,(HL)
+              mem_refer_addr := Cat(H,L)
+              machine_state_next := M2_state
+              alu.io.input_B := io.bus.data
+              opcode_index := opcode_index + 1.U
+            }
+          }
+          is(0x0B.U) {
+            // or or cp
+            when(opcode(6) === 1.U) {
+              // n
+              mem_refer_addr := PC_next
+              PC_next := PC_next + 1.U
+              machine_state_next := M2_state
+              opcode_index := opcode_index + 1.U
+              alu.io.input_B := io.bus.data
+            } .elsewhen(opcode(2,0) === 0x06.U) {
+              // or/cp a,(HL)
+              mem_refer_addr := Cat(H,L)
+              machine_state_next := M2_state
+              alu.io.input_B := io.bus.data
+              opcode_index := opcode_index + 1.U
+            }
+          }
+        }
 //        PC_next := PC_next + 1.U
-          when(opcode(3,0) =/= "b110".U) {
-            regfiles_front(A_op) := alu.io.output_C
-            regfiles_front(F_op) := alu.io.flag
-          }
+        when(opcode(3,0) =/= "b110".U) {
+          regfiles_front(A_op) := alu.io.output_C
+          regfiles_front(F_op) := alu.io.flag
         }
       }
       is(M2_state) {
@@ -659,19 +642,17 @@ class Core extends Module {
     // LD (HL), n
     switch (machine_state) {
       is (M1_state) {
-        when(m_t_cycle===3.U) {
-          when(opcode === 0x36.U) {
-            machine_state_next := M2_state
-            mem_refer_addr := PC_next
-            PC_next := PC_next + 1.U
-          } .otherwise {
-            machine_state_next := M3_state
+        when(opcode === 0x36.U) {
+          machine_state_next := M2_state
+          mem_refer_addr := PC_next
+          PC_next := PC_next + 1.U
+        } .otherwise {
+          machine_state_next := M3_state
 //            opcode_index := 1.U
-            mem_refer_addr := Cat(H, L)
+          mem_refer_addr := Cat(H, L)
 //          PC_next := PC_next + 1.U
-          }
-          opcode_index := opcode_index + 1.U
-       }
+        }
+        opcode_index := opcode_index + 1.U
       }
       is (M2_state) {
         machine_state_next := M3_state
@@ -822,12 +803,10 @@ class Core extends Module {
   def in_out(opcode:UInt) {
     switch(machine_state) {
       is(M1_state) {
-        when(m_t_cycle===3.U) {
-          machine_state_next := M2_state;
+        machine_state_next := M2_state;
 //          mem_refer_addr := PC_next + 1.U
-          mem_refer_addr := PC_next
-          opcode_index := opcode_index + 1.U
-        }
+        mem_refer_addr := PC_next
+        opcode_index := opcode_index + 1.U
       }
       is(M2_state) {
         when(m_t_cycle===2.U) {
@@ -1010,21 +989,19 @@ def add16(opcode:UInt) {
 
   switch(machine_state) {
     is(M1_state) {
-      when(m_t_cycle===3.U) {
-        machine_state_next := MX_state_8
-        dummy_cycle := 8.U
-        val to_be_added = regs_pair_data
-        val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
-        val HL_S_ = ( HL_ & 0x0FFF.U)
-       
-        val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
-       
-        val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
-        val added_s = HL_S_ + to_be_added_S_
-       
-        result := added(15,0)
-        F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
-      }
+      machine_state_next := MX_state_8
+      dummy_cycle := 8.U
+      val to_be_added = regs_pair_data
+      val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
+      val HL_S_ = ( HL_ & 0x0FFF.U)
+     
+      val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
+     
+      val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
+      val added_s = HL_S_ + to_be_added_S_
+     
+      result := added(15,0)
+      F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
     }
     is(MX_state_8) {
       machine_state_next := M1_state
