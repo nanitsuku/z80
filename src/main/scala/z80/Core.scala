@@ -3,6 +3,19 @@ package z80
 import chisel3._
 import chisel3.util._
 
+object Core extends Enumeration {
+  ///// registers
+  // 8bit registers enums
+
+  val A_op = "b111".U
+  val B_op = "b000".U
+  val C_op = "b001".U
+  val D_op = "b010".U
+  val E_op = "b011".U
+  val H_op = "b100".U
+  val L_op = "b101".U
+  val F_op = "b110".U
+}
 
 class Core extends Module {
 
@@ -46,37 +59,31 @@ class Core extends Module {
 
   ///// registers
   // 8bit registers
-  val A_op = "b111".U(3.W)
-  val B_op = "b000".U(3.W)
-  val C_op = "b001".U(3.W)
-  val D_op = "b010".U(3.W)
-  val E_op = "b011".U(3.W)
-  val H_op = "b100".U(3.W)
-  val L_op = "b101".U(3.W)
-  val F_op = "b110".U(3.W)
+//  val Core.H_op = "b100".U(3.W)
+//  val L_op = "b101".U(3.W)
 
   //val regfiles_front = Mem(8, UInt(8.W))
   val regfiles_front = Reg(Vec(8, UInt(8.W)))
 //  val regfiles_back = Mem(8, UInt(8.W))
   val regfiles_back = Reg(Vec(8, UInt(8.W))) 
 
-  val A = WireDefault(regfiles_front(A_op))
-  val B = WireDefault(regfiles_front(B_op))
-  val C = WireDefault(regfiles_front(C_op))
-  val D = WireDefault(regfiles_front(D_op))
-  val E = WireDefault(regfiles_front(E_op))
-  val F = WireDefault(regfiles_front(F_op))
-  val H = WireDefault(regfiles_front(H_op))
-  val L = WireDefault(regfiles_front(L_op))
+  val A = WireDefault(regfiles_front(Core.A_op))
+  val B = WireDefault(regfiles_front(Core.B_op))
+  val C = WireDefault(regfiles_front(Core.C_op))
+  val D = WireDefault(regfiles_front(Core.D_op))
+  val E = WireDefault(regfiles_front(Core.E_op))
+  val F = WireDefault(regfiles_front(Core.F_op))
+  val H = WireDefault(regfiles_front(Core.H_op))
+  val L = WireDefault(regfiles_front(Core.L_op))
 
-  val A_prime = WireDefault(regfiles_back(A_op))
-  val B_prime  = WireDefault(regfiles_back(B_op))
-  val C_prime  = WireDefault(regfiles_back(C_op))
-  val D_prime  = WireDefault(regfiles_back(D_op))
-  val E_prime  = WireDefault(regfiles_back(E_op))
-  val F_prime =  WireDefault(regfiles_front(F_op))
-  val H_prime  = WireDefault(regfiles_back(H_op))
-  val L_prime  = WireDefault(regfiles_back(L_op))
+  val A_prime = WireDefault(regfiles_back(Core.A_op))
+  val B_prime  = WireDefault(regfiles_back(Core.B_op))
+  val C_prime  = WireDefault(regfiles_back(Core.C_op))
+  val D_prime  = WireDefault(regfiles_back(Core.D_op))
+  val E_prime  = WireDefault(regfiles_back(Core.E_op))
+  val F_prime =  WireDefault(regfiles_front(Core.F_op))
+  val H_prime  = WireDefault(regfiles_back(Core.H_op))
+  val L_prime  = WireDefault(regfiles_back(Core.L_op))
 
   // register
 //  val F = RegInit(0xFF.U(8.W))
@@ -112,8 +119,8 @@ class Core extends Module {
   val opcode_index = RegInit(0.U(8.W))
 
   def reset_func() {
-    regfiles_front(A_op) := 0xFF.U;
-    regfiles_front(F_op) := 0xFF.U;
+    regfiles_front(Core.A_op) := 0xFF.U;
+    regfiles_front(Core.F_op) := 0xFF.U;
     regfiles_front(PC) := 0x0000.U;
   }
 
@@ -146,7 +153,7 @@ class Core extends Module {
             mem_refer_addr := alu16.io.output
             when(m_t_cycle===2.U) {
               opcode_index := 0.U
-              regfiles_front(A_op) := io.bus.data
+              regfiles_front(Core.A_op) := io.bus.data
               when(fallingedge(io.clock2.asBool())) {
                 machine_state_next := M1_state
               }
@@ -188,21 +195,21 @@ class Core extends Module {
         switch(m_t_cycle) {
           is(2.U) {
 /*
-            regfiles_front(B_op) := alu16.io.output(15,8)
-            regfiles_front(C_op) := alu16.io.output(7,0)
+            regfiles_front(Core.B_op) := alu16.io.output(15,8)
+            regfiles_front(Core.C_op) := alu16.io.output(7,0)
 */
             switch(instruction(5,4)) {
               is(BC_op) {
-                regfiles_front(B_op) := alu16.io.output(15,8)
-                regfiles_front(C_op) := alu16.io.output(7,0)
+                regfiles_front(Core.B_op) := alu16.io.output(15,8)
+                regfiles_front(Core.C_op) := alu16.io.output(7,0)
               }
               is(DE_op) {
-                regfiles_front(D_op) := alu16.io.output(15,8)
-                regfiles_front(E_op) := alu16.io.output(7,0)
+                regfiles_front(Core.D_op) := alu16.io.output(15,8)
+                regfiles_front(Core.E_op) := alu16.io.output(7,0)
               }
               is(HL_op) {
-                regfiles_front(H_op) := alu16.io.output(15,8)
-                regfiles_front(L_op) := alu16.io.output(7,0)
+                regfiles_front(Core.H_op) := alu16.io.output(15,8)
+                regfiles_front(Core.L_op) := alu16.io.output(7,0)
               }
               is(SP_op) {
                 SP := alu16.io.output
@@ -265,7 +272,7 @@ class Core extends Module {
             io.bus.data1 := temp
             mem_refer_addr := PC_next
             opcode_index := 0.U
-            regfiles_front(F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(F_op) & "b00000001".U)
+            regfiles_front(Core.F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(Core.F_op) & "b00000001".U)
           }
         }
       }
@@ -274,8 +281,8 @@ class Core extends Module {
       // M1(4)
       when(m_t_cycle===3.U) {
         regfiles_front(opcodes(0)(5,3)) := alu.io.output_C
-//        regfiles_front(F_op) := ((regfiles_front(F_op) & "b1".U) | (alu.io.flag  & !"b1".U))
-        regfiles_front(F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(F_op) & "b00000001".U)
+//        regfiles_front(Core.F_op) := ((regfiles_front(Core.F_op) & "b1".U) | (alu.io.flag  & !"b1".U))
+        regfiles_front(Core.F_op) := (alu.io.flag & "b11111110".U) | (regfiles_front(Core.F_op) & "b00000001".U)
       }
     }
   }
@@ -303,7 +310,7 @@ class Core extends Module {
               PC_next := PC_next + 1.U
               opcode_index := opcode_index + 1.U
             } .otherwise { // ld A,(BC|DE) 
-              regfiles_front(A_op) := io.bus.data
+              regfiles_front(Core.A_op) := io.bus.data
               when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool())) {
                 machine_state_next := M1_state
               }
@@ -315,9 +322,9 @@ class Core extends Module {
 //            printf(p"${Hexadecimal(opcodes(0))},${Hexadecimal(opcodes(1))}, ${Hexadecimal(opcodes(2))}\n")
             mem_refer_addr := Cat(opcodes(2), opcodes(1))
 /*
-            regfiles_back(B_op) := opcodes(2)
+            regfiles_back(Core.B_op) := opcodes(2)
             regfiles_back(C_op) := opcodes(1)
-            regfiles_back(D_op) := opcodes(0)
+            regfiles_back(Core.D_op) := opcodes(0)
             */
           }
           is(3.U) {
@@ -326,26 +333,26 @@ class Core extends Module {
               // LD A,(nn)
 //            printf(p"${Hexadecimal(mem_refer_addr)}\n")
 //            printf(p"${Hexadecimal(io.bus.data)}\n")
-              regfiles_front(A_op) := io.bus.data
+              regfiles_front(Core.A_op) := io.bus.data
               when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool())) {
                 machine_state_next := M1_state
               }
               opcode_index := 0.U
             } .otherwise {
                // LD HL,(nn)
-              regfiles_front(L_op) := io.bus.data
-              //regfiles_front(L_op) := opcodes(2)
+              regfiles_front(Core.L_op) := io.bus.data
+              //regfiles_front(Core.L_op) := opcodes(2)
               mem_refer_addr := mem_refer_addr + 1.U
               opcode_index := opcode_index + 1.U
             }
           }
           is(4.U) {
-            //regfiles_front(H_op) := io.bus.data
-//            regfiles_front(H_op) := 0x99.U
+            //regfiles_front(Core.H_op) := io.bus.data
+//            regfiles_front(Core.H_op) := 0x99.U
 
 
-            regfiles_front(H_op) := io.bus.data
-            //regfiles_front(H_op) := opcodes(1)
+            regfiles_front(Core.H_op) := io.bus.data
+            //regfiles_front(Core.H_op) := opcodes(1)
             when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool())) {
               machine_state_next := M1_state
             }
@@ -369,7 +376,7 @@ class Core extends Module {
       is(M1_state) {
         when(src_reg === "b110".U) {
           machine_state_next := M2_state
-          mem_refer_addr := Cat(regfiles_front(H_op), regfiles_front(L_op))
+          mem_refer_addr := Cat(regfiles_front(Core.H_op), regfiles_front(Core.L_op))
           opcode_index := 1.U
         }.otherwise {
           regfiles_front(dst_reg) := regfiles_front(src_reg)
@@ -416,12 +423,12 @@ class Core extends Module {
   }
 
   def rp_pair_af = (RP:UInt) => 
-    ListLookup(RP, List(4.U, 6.U), //List(B_op, C_op),
+    ListLookup(RP, List(4.U, 6.U), //List(Core.B_op, Core.C_op),
       Array(
-        new BitPat(BC_op.litValue(), 3, 2) -> List(B_op, C_op),
-        new BitPat(DE_op.litValue(), 3, 2) -> List(D_op, E_op),
-        new BitPat(HL_op.litValue(), 3, 2) -> List(H_op, L_op),
-        new BitPat(SP_op.litValue(), 3, 2) -> List(A_op, F_op),
+        new BitPat(BC_op.litValue(), 3, 2) -> List(Core.B_op, Core.C_op),
+        new BitPat(DE_op.litValue(), 3, 2) -> List(Core.D_op, Core.E_op),
+        new BitPat(HL_op.litValue(), 3, 2) -> List(Core.H_op, Core.L_op),
+        new BitPat(SP_op.litValue(), 3, 2) -> List(Core.A_op, Core.F_op),
      )
     )
  
@@ -513,7 +520,7 @@ class Core extends Module {
 
   def add_a_r(opcode:UInt) {
     val src_reg = RegInit(0.U(8.W))
-    alu.io.input_A := regfiles_front(A_op)
+    alu.io.input_A := regfiles_front(Core.A_op)
     alu.io.input_B := regfiles_front(opcodes(0)(2,0))
     alu.io.input_carry := Mux(opcode(7) === "b1".U, C_flag, 0.U)
     alu.io.calc_type := Mux(opcode(7,6) === "b11".U,
@@ -522,7 +529,7 @@ class Core extends Module {
 
     switch(machine_state) {
       is(M1_state) {
-        src_reg := regfiles_front(A_op)
+        src_reg := regfiles_front(Core.A_op)
         switch(opcode(7,4)&"b1011".U) {
           is(0x08.U) {
             // add or adc
@@ -595,14 +602,14 @@ class Core extends Module {
         }
 //        PC_next := PC_next + 1.U
         when(opcode(3,0) =/= "b110".U) {
-          regfiles_front(A_op) := alu.io.output_C
-          regfiles_front(F_op) := alu.io.flag
+          regfiles_front(Core.A_op) := alu.io.output_C
+          regfiles_front(Core.F_op) := alu.io.flag
         }
       }
       is(M2_state) {
         when(m_t_cycle===2.U) {
-          regfiles_front(A_op) := alu.io.output_C
-          regfiles_front(F_op) := alu.io.flag
+          regfiles_front(Core.A_op) := alu.io.output_C
+          regfiles_front(Core.F_op) := alu.io.flag
           alu.io.input_B := io.bus.data
           opcode_index := 0.U
           when(fallingedge(io.clock2.asBool())) {
@@ -658,7 +665,7 @@ class Core extends Module {
           // JP (HL)
 //          machine_state_next := M1_state
 //          opcode_index := 0.U
-          PC_next := Cat(regfiles_front(H_op), regfiles_front(L_op))
+          PC_next := Cat(regfiles_front(Core.H_op), regfiles_front(Core.L_op))
 //          PC := PC_next
 //          mem_refer_addr := PC
         } .otherwise {
@@ -799,7 +806,7 @@ class Core extends Module {
             PC_next := PC_next + 1.U
           }
           when(opcodes(0)(3)===0.U) {
-            io.bus.data1 := regfiles_front(A_op)
+            io.bus.data1 := regfiles_front(Core.A_op)
           }
         }
       }
@@ -821,7 +828,7 @@ class Core extends Module {
               when(opcodes(0)(3)===1.U) { // IN A,(N)
                 io.bus.RD_ := 0.U
 //                A := io.bus.data
-////                regfiles_front(A_op) := io.bus.data
+////                regfiles_front(Core.A_op) := io.bus.data
               } otherwise { // OUT A,(N)
                 io.bus.WR_ := 0.U
               }
@@ -830,14 +837,14 @@ class Core extends Module {
           is(3.U) {
             when(opcodes(0)(3)===1.U) {
               A := io.bus.data
-////              regfiles_front(A_op) := io.bus.data
+////              regfiles_front(Core.A_op) := io.bus.data
             } otherwise {
               io.bus.data1 := A
             }
             io.bus.IORQ_ :=0.U
             when(opcodes(0)(3)===1.U) { // IN A,(N)
               io.bus.RD_ := 0.U
-              regfiles_front(A_op) := io.bus.data
+              regfiles_front(Core.A_op) := io.bus.data
               A := io.bus.data
             } otherwise { // OUT A,(N)
               io.bus.WR_ := 0.U
@@ -849,7 +856,7 @@ class Core extends Module {
           is(4.U) {
             when(opcodes(0)(3)===1.U) {
 //              A := io.bus.data
-////              regfiles_front(A_op) := io.bus.data
+////              regfiles_front(Core.A_op) := io.bus.data
             } otherwise {
               io.bus.data1 := A
             }
@@ -959,9 +966,9 @@ def call(opcode:UInt) {
 val regs_pair = opcodes(0)(5,4)
 val regs_pair_data = WireDefault(MuxCase(0x0000.U,
     Array(
-      (regs_pair === BC_op) -> Cat(regfiles_front(B_op), regfiles_front(C_op)),
-      (regs_pair === DE_op) -> Cat(regfiles_front(D_op), regfiles_front(E_op)),
-      (regs_pair === HL_op) -> Cat(regfiles_front(H_op), regfiles_front(L_op)),
+      (regs_pair === BC_op) -> Cat(regfiles_front(Core.B_op), regfiles_front(Core.C_op)),
+      (regs_pair === DE_op) -> Cat(regfiles_front(Core.D_op), regfiles_front(Core.E_op)),
+      (regs_pair === HL_op) -> Cat(regfiles_front(Core.H_op), regfiles_front(Core.L_op)),
       (regs_pair === SP_op) -> SP
     )))
 
@@ -976,7 +983,7 @@ def add16(opcode:UInt) {
       machine_state_next := MX_state_8
       dummy_cycle := 8.U
       val to_be_added = regs_pair_data
-      val HL_ = Cat(regfiles_front(H_op), regfiles_front(L_op))
+      val HL_ = Cat(regfiles_front(Core.H_op), regfiles_front(Core.L_op))
       val HL_S_ = ( HL_ & 0x0FFF.U)
      
       val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
@@ -985,28 +992,28 @@ def add16(opcode:UInt) {
       val added_s = HL_S_ + to_be_added_S_
      
       result := added(15,0)
-      F_ := (regfiles_front(F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
+      F_ := (regfiles_front(Core.F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
     }
     is(MX_state_8) {
       when(m_t_cycle === dummy_cycle - 1.U && fallingedge(io.clock2.asBool())) {
         machine_state_next := M1_state
       }
-      regfiles_front(H_op) := result(15,8)
-      regfiles_front(L_op) := result(7,0)
-      regfiles_front(F_op) := F_
+      regfiles_front(Core.H_op) := result(15,8)
+      regfiles_front(Core.L_op) := result(7,0)
+      regfiles_front(Core.F_op) := F_
     }
   }
 }
 
 def daa(opcode:UInt) {
-  alu.io.input_A := regfiles_front(A_op)
-  alu.io.input_flag := regfiles_front(F_op)
+  alu.io.input_A := regfiles_front(Core.A_op)
+  alu.io.input_flag := regfiles_front(Core.F_op)
   alu.io.calc_type := opcode
 
   switch(m_t_cycle) {
     is(3.U) {
-      regfiles_front(A_op) := alu.io.output_C
-      regfiles_front(F_op) := alu.io.flag
+      regfiles_front(Core.A_op) := alu.io.output_C
+      regfiles_front(Core.F_op) := alu.io.flag
       machine_state_next := M1_state
     }
     is(4.U) {
@@ -1071,33 +1078,33 @@ def shift_rotate(opcode:UInt) {
 
   switch(m_t_cycle) {
     is(2.U) {
-      pre_F := regfiles_front(F_op)
+      pre_F := regfiles_front(Core.F_op)
       switch(opcode(4,3)) {
         is("b00".U) {
           // RLCA
           temp := Cat(A(6,0), A(7))
-          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(7))
+          regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, A(7))
         }
         is("b01".U) {
           // RRCA
           temp := Cat(A(0), A(7,1))
-          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(0))
+          regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, A(0))
         }
         is("b10".U) {
           // RLA
           temp := Cat(A(6,0) , C_flag)
 //          C_flag := A(7)
-          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(7))
+          regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, A(7))
         }
         is("b11".U) {
           // RRA
           temp := Cat(C_flag, A(7,1))
-          regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, A(0))
+          regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, A(0))
         }
       }
     }
     is(3.U) {
-      regfiles_front(A_op) := temp
+      regfiles_front(Core.A_op) := temp
       machine_state_next := M1_state
       opcode_index := 0.U
     }
@@ -1174,7 +1181,7 @@ def ld_sp_hl(opcode:UInt) {
 //  printf("hogehoge\n")
   switch(machine_state) {
     is(M1_state) {
-      SP := Cat(regfiles_front(H_op),regfiles_front(L_op))
+      SP := Cat(regfiles_front(Core.H_op),regfiles_front(Core.L_op))
 //      printf(p"${Hexadecimal(SP)}\n")
       dummy_cycle := 2.U
       machine_state_next := MX_state_8
@@ -1190,13 +1197,13 @@ def ld_sp_hl(opcode:UInt) {
 def ex_af_afp(opcode:UInt) {
   val tmp = Reg(Vec(2, UInt(8.W)))
 
-  tmp(0) := regfiles_front(A_op)
-  tmp(1) := regfiles_front(F_op)
-  regfiles_front(A_op) := regfiles_back(A_op) 
-  regfiles_front(F_op) := regfiles_back(F_op) 
+  tmp(0) := regfiles_front(Core.A_op)
+  tmp(1) := regfiles_front(Core.F_op)
+  regfiles_front(Core.A_op) := regfiles_back(Core.A_op) 
+  regfiles_front(Core.F_op) := regfiles_back(Core.F_op) 
 
-  regfiles_back(A_op) := tmp(0)
-  regfiles_back(F_op) := tmp(1)
+  regfiles_back(Core.A_op) := tmp(0)
+  regfiles_back(Core.F_op) := tmp(1)
 
   machine_state_next := M1_state
 }
@@ -1206,11 +1213,11 @@ def cf(opcode:UInt) {
     switch(opcode(3)) {
       is(0.B) { 
         // scf
-        regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, 1.B)
+        regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, 1.B)
       }
       is(1.B) {
         // ccf
-        regfiles_front(F_op) := regfiles_front(F_op).bitSet(0.U, ~C_flag)
+        regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, ~C_flag)
       }
     }
   }
@@ -1257,13 +1264,13 @@ def jr(opcode:UInt) {
     is(MX_state_8) {
       // djnz
       when((opcode===0x10.U) && (m_t_cycle === 1.U) &&fallingedge(io.clock2.asBool)) {
-        regfiles_front(B_op) := regfiles_front(B_op) - 1.U
+        regfiles_front(Core.B_op) := regfiles_front(Core.B_op) - 1.U
       }
       when(m_t_cycle===(dummy_cycle-1.U)&&fallingedge(io.clock2.asBool)) {
         mem_refer_addr := PC_next
         machine_state_next := M1_state
         opcode_index := 0.U
-        when(cond || (opcode===0x10.U && (regfiles_front(B_op))=/=0.U)) {
+        when(cond || (opcode===0x10.U && (regfiles_front(Core.B_op))=/=0.U)) {
           PC_next := (PC_next.asSInt + opcodes(1).asSInt).asUInt
         }
       }
@@ -1332,7 +1339,7 @@ def ei_di(opcode:UInt) {
   def exx(opcode:UInt) {
     val regfiles_tmp = Reg(Vec(8, UInt(8.W)))
 
-    for( r <- List(B_op, C_op, D_op, E_op, H_op, L_op)) {
+    for( r <- List(Core.B_op, Core.C_op, Core.D_op, Core.E_op, Core.H_op, Core.L_op)) {
       when(m_t_cycle === 2.U) {
         regfiles_tmp(r) := regfiles_front(r)
       } .otherwise {
@@ -1344,7 +1351,7 @@ def ei_di(opcode:UInt) {
 
   def ex_de_hl(opcode:UInt) {
     val regfiles_tmp = Reg(Vec(8, UInt(8.W)))
-    val list = List((D_op, E_op), (H_op, L_op))
+    val list = List((Core.D_op, Core.E_op), (Core.H_op, Core.L_op))
 
     when(m_t_cycle === 2.U) {
       regfiles_tmp(list(0)._1) := regfiles_front(list(1)._1)
@@ -1384,12 +1391,12 @@ def ei_di(opcode:UInt) {
       is(M2_state) {
         switch(opcode_index) {
           is(1.U) {
-            regfiles_front(L_op) := io.bus.data
+            regfiles_front(Core.L_op) := io.bus.data
             mem_refer_addr := SP + 1.U
             opcode_index := opcode_index + 1.U
           }
           is(2.U) {
-            regfiles_front(H_op) := io.bus.data
+            regfiles_front(Core.H_op) := io.bus.data
             mem_refer_addr := SP
             opcode_index := opcode_index + 1.U
             dummy_cycle := 3.U
@@ -1432,15 +1439,15 @@ def ei_di(opcode:UInt) {
       switch(opcode(3,0)) {
         is(0x7.U) {
           // shift left
-          val AA = regfiles_front(A_op)
-          regfiles_front(A_op) := Cat(AA(6,0),Mux(opcode(4),F(0),AA(7)))
-          regfiles_front(F_op) := Cat(F(7,1),AA(7))
+          val AA = regfiles_front(Core.A_op)
+          regfiles_front(Core.A_op) := Cat(AA(6,0),Mux(opcode(4),F(0),AA(7)))
+          regfiles_front(Core.F_op) := Cat(F(7,1),AA(7))
         }
         is(0xF.U) {
           // shift right
-          val AA = regfiles_front(A_op)
-          regfiles_front(A_op) := Cat(Mux(opcode(4),F(0),AA(0)),AA(7,1))
-          regfiles_front(F_op) := Cat(F(7,1),AA(0))
+          val AA = regfiles_front(Core.A_op)
+          regfiles_front(Core.A_op) := Cat(Mux(opcode(4),F(0),AA(0)),AA(7,1))
+          regfiles_front(Core.F_op) := Cat(F(7,1),AA(0))
         }
       }
     }
@@ -1448,25 +1455,25 @@ def ei_di(opcode:UInt) {
 
   def cpl(opcode:UInt) {
     when(m_t_cycle===3.U) {
-      val FF = regfiles_front(F_op)
-      val AA = regfiles_front(A_op)
+      val FF = regfiles_front(Core.F_op)
+      val AA = regfiles_front(Core.A_op)
   
-      regfiles_front(A_op) := (~AA)
-      regfiles_front(F_op) := ( FF | 0x12.U )
+      regfiles_front(Core.A_op) := (~AA)
+      regfiles_front(Core.F_op) := ( FF | 0x12.U )
     }
   }
 
   def scf_ccf(opcode:UInt) {
     when(m_t_cycle===3.U) {
-      val FF = regfiles_front(F_op)
+      val FF = regfiles_front(Core.F_op)
       switch(opcode) {
         is(0x37.U) {
           // scf
-          regfiles_front(F_op) := Cat(FF(7,5),0.B,FF(3,2),0.B,1.B)
+          regfiles_front(Core.F_op) := Cat(FF(7,5),0.B,FF(3,2),0.B,1.B)
         }
         is(0x3F.U) {
           // ccf
-          regfiles_front(F_op) := Cat(FF(7,5),FF(0),FF(3,2),0.B,~FF(0))
+          regfiles_front(Core.F_op) := Cat(FF(7,5),FF(0),FF(3,2),0.B,~FF(0))
         }
       }
     }
