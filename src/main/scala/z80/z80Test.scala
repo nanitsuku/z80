@@ -305,7 +305,7 @@ object TK80TestGUI extends JFXApp  {
     def runTask= {
       iotesters.Driver.execute(arg, () => new TopSupervisor("src/hex/tk80.hex")) {
         c => new PeekPokeTester(c) {
-          val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+          val regs = List(Core.A_op, Core.B_op, Core.C_op, Core.D_op, Core.E_op, Core.F_op, Core.H_op, Core.L_op)
           pc = peek(c.io.PC).U
           var sp = peek(c.io.SP).U
           var ix = peek(c.io.IX).U
@@ -382,7 +382,7 @@ object TopTest extends App {
     c => new PeekPokeTester(c) {
       val unit_test = new UnitTest(filename + ".lst")
       System.out.println("   PC  A  B  C  D  E  F  H  L  A' B' C' D' E' F' H' L'  SP   IX   IY  R  I IFF  IFF2 IM\n")
-      val regs = List(c.top.core.A_op, c.top.core.B_op, c.top.core.C_op, c.top.core.D_op, c.top.core.E_op, c.top.core.F_op, c.top.core.H_op, c.top.core.L_op)
+      val regs = List(Core.A_op, Core.B_op, Core.C_op, Core.D_op, Core.E_op, Core.F_op, Core.H_op, Core.L_op)
           pc = peek(c.io.PC).U
       var sp = peek(c.io.SP).U
       var ix = peek(c.io.IX).U
