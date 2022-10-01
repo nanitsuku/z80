@@ -750,7 +750,7 @@ class Core extends Module {
         when(op==="b1001".U) {
           machine_state_next := Core.M2_state 
         } otherwise {
-           machine_state_next := Core.MX_state_8
+          machine_state_next := Core.MX_state_8
         }
         // TODO: clock cycle is not valid
         dummy_cycle := 2.U
@@ -770,12 +770,11 @@ class Core extends Module {
        is(Core.M2_state) {
         switch(m_t_cycle) {
           is(2.U) {
-  //          opcodes(opcode_index) := io.bus.data
             SP := SP + 1.U
             opcode_index := opcode_index + 1.U
             mem_refer_addr := SP + 1.U
             when(opcode_index===2.U) {
-              PC_next := Cat(opcodes(1), io.bus.data)
+              PC_next := Cat(io.bus.data, opcodes(1))
               opcode_index := 0.U
               machine_state_next := Core.M1_state
             }
@@ -921,7 +920,7 @@ def call(opcode:UInt) {
       alu16.io.input_register := SP
       alu16.io.offset := -1.S
       mem_refer_addr := alu16.io.output
-      io.bus.data1 := (PC+1.U)(7,0)
+        io.bus.data1 := (PC+1.U)(15,8)
       opcode_index := 3.U
     }
     is(Core.M3_state) {
@@ -934,13 +933,13 @@ def call(opcode:UInt) {
             opcode_index := opcode_index + 1.U
             alu16.io.offset := -2.S
           }
-          io.bus.data1 := (PC+1.U)(7,0)
+            io.bus.data1 := (PC+1.U)(15,8)
         }
         is(4.U) {
           alu16.io.input_register := SP
           alu16.io.offset := -2.S
           mem_refer_addr := alu16.io.output
-          io.bus.data1 := (PC+1.U)(15,8)
+          io.bus.data1 := (PC+1.U)(7,0)
           PC_next := Cat(opcodes(2),opcodes(1))
   
           when(m_t_cycle===2.U && fallingedge(io.clock2.asBool)) {
@@ -950,7 +949,6 @@ def call(opcode:UInt) {
             opcode_index := 0.U
             SP := alu16.io.output
           }
-
         }
       }
     }
@@ -1036,7 +1034,7 @@ def rst(opcode:UInt) {
         SP := SP - 1.U
         opcode_index := opcode_index + 1.U
         m_t_cycle := 1.U
-        io.bus.data1 := PC_next(7,0)
+        io.bus.data1 := PC(15,8)
       } .otherwise {
         m_t_cycle := m_t_cycle + 1.U
       }
@@ -1053,13 +1051,13 @@ def rst(opcode:UInt) {
 
       switch(opcode_index) {
         is(1.U) {
-          io.bus.data1 := PC(7,0)
+          io.bus.data1 := PC(15,8)
           when(m_t_cycle === 3.U && fallingedge(io.clock2.asBool)) {
             SP := SP - 1.U
           }
         }
         is(2.U) {
-          io.bus.data1 := PC(15,8)
+          io.bus.data1 := PC(7,0)
         }
       }
     }
