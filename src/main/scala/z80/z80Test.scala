@@ -90,6 +90,10 @@ class TopSupervisor(filename:String) extends Module {
     val keys = Input(Vec(3, UInt(8.W)))
 
     val key_output = Output(UInt(8.W))
+
+    val INT_ = Input(Bool())
+
+    val M1_ = Output(Bool())
   })
 
   val top = Module(new Top(filename))
@@ -127,6 +131,7 @@ class TopSupervisor(filename:String) extends Module {
   io.DATAL_register:= WireDefault(0.U(8.W))
 
   io.key_output := WireDefault(0.U(8.W))
+  io.M1_ := WireDefault(1.B)
 
   BoringUtils.bore(top.core.io.bus.HALT_ , Seq(io.halt_))
   BoringUtils.bore(top.core.machine_state, Seq(io.machine_state))
@@ -155,11 +160,15 @@ class TopSupervisor(filename:String) extends Module {
 
   BoringUtils.bore(top.key_encoder.io.output, Seq(io.key_output))
 
+  BoringUtils.bore(top.core.io.bus.M1_, Seq(io.M1_))
+
   top.io.PortAInput := io.PortAInput
   top.io.PortBInput := io.PortBInput
   top.io.PortCLInput := io.PortCLInput
   top.io.PortCUInput := io.PortCUInput
   top.io.keys := io.keys
+
+  top.io.INT_ := io.INT_
 }
 
 object TK80TestGUI extends JFXApp  {
@@ -316,6 +325,8 @@ object TK80TestGUI extends JFXApp  {
           var iff1 = 0.U //peek(c.io.IFF).U
           var iff2 = 0.U //peek(c.io.IFF2).U
     
+          poke(c.io.INT_, 1)
+          var next_m1_int = 0
           while(peek(c.io.halt_)==1 && running) {
             val machine_state:Int = peek(c.io.machine_state).toInt
             val t_cycle:Int = peek(c.io.t_cycle).toInt
@@ -351,8 +362,16 @@ object TK80TestGUI extends JFXApp  {
                 others_text.setText((others_str))
               })
             }
+            if (peek(c.io.IFF1) == 1) {
+              if (peek(c.io.M1_) == 0) {
+                next_m1_int = next_m1_int + 16
+                poke(c.io.INT_,0)
+              }
+            } else {
+              poke(c.io.INT_, 1)
+              next_m1_int = 0
+            }
             step(1)
-    
             prev_state = machine_state
             prev_t_cycle = t_cycle
             prev_pc = pc
