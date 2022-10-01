@@ -24,6 +24,7 @@ import scala.util.control.Breaks
 import scalafx.scene.Scene
 import scalafx.scene.control.Button
 import scalafx.scene.control.TextField
+import scalafx.scene.control.CheckBox
 
 //import chiseltest._
 //import chiseltest.experimental.TestOptionBuilder._
@@ -201,6 +202,7 @@ object TK80TestGUI extends JFXApp  {
   var key_data_2 = 0xFF
   var key_data_3 = 0xFF
   var reset_button = 0xFF
+  var step_run = false
 
   class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int, special:Boolean = false) extends Button(name) {
     prefHeight = 75
@@ -218,7 +220,6 @@ object TK80TestGUI extends JFXApp  {
     }
   }
 
-  val gui_semaphore = new Semaphore(1)
   stage = new PrimaryStage {
     title = "TK80TestGUI"
     scene = new Scene(75*5, 600) {
@@ -237,6 +238,11 @@ object TK80TestGUI extends JFXApp  {
                 onMouseClicked = handle {
                   ho.running = false
                   close()
+                }
+              },
+              new CheckBox("Step") {
+                onMouseReleased = handle {
+                  step_run = selected.value
                 }
               }
             )
@@ -355,6 +361,7 @@ object TK80TestGUI extends JFXApp  {
               val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
               val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
   //            val others_str = f"${peek(c.io.key_output)}"
+//              others_str = f"${step_run} ${!step_run}"
               Platform.runLater( () -> {
                 pc_text.setText(pc_str)
                 addr_text.setText(address_str)
@@ -365,7 +372,7 @@ object TK80TestGUI extends JFXApp  {
             if (peek(c.io.IFF1) == 1) {
               if (peek(c.io.M1_) == 0) {
                 next_m1_int = next_m1_int + 16
-                poke(c.io.INT_,0)
+                poke(c.io.INT_,!step_run)
               }
             } else {
               poke(c.io.INT_, 1)
