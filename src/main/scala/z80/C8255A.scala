@@ -142,3 +142,18 @@ class C8255A extends Module {
   dontTouch(io.PortCUInput)
   dontTouch(io.PortCLInput)
 }
+
+class C8228 extends Module {
+  val io = IO(new Bundle {
+    val datai = Input(UInt(8.W))
+    val datao = Output(UInt(8.W))
+    val INT_ = Input(Bool())
+    val IORQ_ = Input(Bool())
+  })
+
+  when(!io.IORQ_ && !io.INT_) {
+    io.datao := 0xFF.U  // RST 38H
+  } otherwise {
+    io.datao := 0x00.U  // nothing
+  }
+}
