@@ -1,3 +1,5 @@
+package Z80Test
+
 import z80._
 import chisel3._
 import chisel3.iotesters._
@@ -6,43 +8,8 @@ import org.scalatest._
 import chisel3.util.experimental.BoringUtils
 
 import scala.util.matching.Regex
-
-import java.awt.event.{ KeyEvent, InputEvent }
-import javax.swing.KeyStroke
-
-import scalafx.scene.input.KeyCode
-
-import scalafx.scene._;
-import scalafx.scene.paint._;
-import javafx.scene.shape._;
-
-import java.util.ArrayList
-import java.math.MathContext
-import org.scalacheck.Prop
 import scala.collection.mutable.ListBuffer
 import scala.util.control.Breaks
-import scalafx.scene.Scene
-import scalafx.scene.control.Button
-import scalafx.scene.control.TextField
-import scalafx.scene.control.CheckBox
-
-//import chiseltest._
-//import chiseltest.experimental.TestOptionBuilder._
-//import chiseltest.internal.VerilatorBackendAnnotation
-
-//package example.lambda
-
-import scalafx.Includes._
-import scalafx.application.JFXApp
-import scalafx.application.Platform
-import scalafx.application.JFXApp.PrimaryStage
-import scalafx.scene.layout._
-import treadle.executable.Big
-import javafx.beans.property.ObjectProperty
-import javafx.event.EventHandler
-import java.util.concurrent.Semaphore
-import scalafx.animation.Timeline
-import scalafx.animation.KeyFrame
 
 object TopGenerate extends App {
   val file_base_path = System.getProperty("user.dir")
@@ -88,6 +55,9 @@ class TopSupervisor(filename:String) extends Module {
     val DATAH_register = Output(UInt(8.W))
     val DATAL_register = Output(UInt(8.W))
 
+    val ADDRESS_LEDS = Output(Vec(4, UInt(8.W)))
+    val DATA_LEDS = Output(Vec(4, UInt(8.W)))
+
     val keys = Input(Vec(3, UInt(8.W)))
 
     val key_output = Output(UInt(8.W))
@@ -99,7 +69,7 @@ class TopSupervisor(filename:String) extends Module {
 
   val top = Module(new Top(filename))
 
-  for ( i <- 0 to 7 ) {
+  for (i <- 0 to 7 ) {
     io.regs_front(i) :=  WireDefault(0.U(8.W))
     io.regs_back(i) :=  WireDefault(0.U(8.W))
     BoringUtils.bore(top.core.regfiles_front(i), Seq(io.regs_front(i)))
@@ -131,6 +101,11 @@ class TopSupervisor(filename:String) extends Module {
   io.DATAH_register:= WireDefault(0.U(8.W))
   io.DATAL_register:= WireDefault(0.U(8.W))
 
+  for (i <-0 to 3) {
+    io.ADDRESS_LEDS(i) := WireDefault(0.U(8.W))
+    io.DATA_LEDS(i) := WireDefault(0.U(8.W))
+  }
+
   io.key_output := WireDefault(0.U(8.W))
   io.M1_ := WireDefault(1.B)
 
@@ -159,7 +134,14 @@ class TopSupervisor(filename:String) extends Module {
   BoringUtils.bore(top.memory.DATAH, Seq(io.DATAH_register))
   BoringUtils.bore(top.memory.DATAL, Seq(io.DATAL_register))
 
-  BoringUtils.bore(top.key_encoder.io.output, Seq(io.key_output))
+  for (i <-0 to 3) {
+    BoringUtils.bore(top.memory.ADDRESS_LEDS(i), Seq(io.ADDRESS_LEDS(i)))
+  }
+  for (i <-0 to 3) {
+    BoringUtils.bore(top.memory.DATA_LEDS(i), Seq(io.DATA_LEDS(i)))
+  }
+
+   BoringUtils.bore(top.key_encoder.io.output, Seq(io.key_output))
 
   BoringUtils.bore(top.core.io.bus.M1_, Seq(io.M1_))
 
@@ -170,223 +152,6 @@ class TopSupervisor(filename:String) extends Module {
   top.io.keys := io.keys
 
   top.io.INT_ := io.INT_
-}
-
-object TK80TestGUI extends JFXApp  {
-  val backend = "verilator"
-  var prev_state = -1
-  var prev_t_cycle = -1
-  val filename_default =  "src/hex/ld"
-  val args = List()
-  val filename = if (args.length>0) args(0) else filename_default
-  val unit_test = new UnitTest(filename + ".lst")
-  val driverTestDir = "test_result/TopSupervisor"
-  var first = true
-  var prev_address = 0
-  var prev_pc = 0.U
-  var pc = 0.U
-  var r = 0.U
-  var r_unit_test = 0
-  val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16", "--generate-vcd-output", "on", "--tr-mem-to-vcd", "mem1:h83c0-83ff")
-
-  val pc_text = new TextField()
-  val addr_text = new TextField()
-  val data_text = new TextField()
-  val others_text = new TextField()
-
-  var pc_ = 0
-  var addr_ = 0
-  var adata_ = 0
-
-  var key_data_1 = 0xFF
-  var key_data_2 = 0xFF
-  var key_data_3 = 0xFF
-  var reset_button = 0xFF
-  var step_run = false
-
-  class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int, special:Boolean = false) extends Button(name) {
-    prefHeight = 75
-    prefWidth = 75
-    
-//    font = Font()
-    val color = if (special) "coral" else "green"
-    val font_size = if (special) "16px" else "40px"
-    style = f"-fx-base: '${color}'; -fx-font: bold ${font_size} 'Aria Black'; -fx-alignment: center; -fx-padding: 0px"
-    onMousePressed = handle {
-      value_set(value)
-    }
-    onMouseReleased = handle {
-      value_set(0xFF)
-    }
-  }
-
-  stage = new PrimaryStage {
-    title = "TK80TestGUI"
-    scene = new Scene(75*5, 600) {
-      root = new VBox {
-        val ho = new TK80TestThread(3)
-        children = List(
-          pc_text, addr_text, data_text, others_text,
-          new HBox {
-            children =  List(
-              new Button("StartTest") {
-                onMouseClicked = handle {
-                  ho.startTask
-                }
-              },
-              new Button("Quit") {
-                onMouseClicked = handle {
-                  ho.running = false
-                  close()
-                }
-              },
-              new CheckBox("Step") {
-                onMouseReleased = handle {
-                  step_run = selected.value
-                }
-              }
-            )
-          },
-          new HBox {
-            prefHeight = 20
-          },
-          new HBox {
-            children = List(
-              new ButtokTK80("RET", (vv:Int)=>{key_data_3=vv}, 0xFD, true),
-              new ButtokTK80("RUN", (vv:Int)=>{key_data_3=vv}, 0xFE, true),
-              new ButtokTK80("STORE\nDATA", (vv:Int)=>{key_data_3=vv}, 0xBF, true),
-              new ButtokTK80("LOAD\nDATA", (vv:Int)=>{key_data_3=vv}, 0x7F, true),
-              new ButtokTK80("RESET", (vv:Int)=>{reset_button=vv}, 0x00, true),
-            )
-          },
-          new HBox {
-            children = List(
-              new ButtokTK80("C", (vv:Int)=>{key_data_2=vv}, 0xEF),
-              new ButtokTK80("D", (vv:Int)=>{key_data_2=vv}, 0xDF),
-              new ButtokTK80("E", (vv:Int)=>{key_data_2=vv}, 0xBF),
-              new ButtokTK80("F", (vv:Int)=>{key_data_2=vv}, 0x7F),
-              new ButtokTK80("ADRS\nSET", (vv:Int)=>{key_data_3=vv}, 0xFB, true),
-            )
-          },
-          new HBox {
-            children = List(
-              new ButtokTK80("8", (vv:Int)=>{key_data_2=vv}, 0xFE),
-              new ButtokTK80("9", (vv:Int)=>{key_data_2=vv}, 0xFD),
-              new ButtokTK80("A", (vv:Int)=>{key_data_2=vv}, 0xFB),
-              new ButtokTK80("B", (vv:Int)=>{key_data_2=vv}, 0xF7),
-              new ButtokTK80("READ\nINCR", (vv:Int)=>{key_data_3=vv}, 0xEF, true),
-            )
-          },
-          new HBox {
-            children = List(
-              new ButtokTK80("4", (vv:Int)=>{key_data_1=vv}, 0xEF),
-              new ButtokTK80("5", (vv:Int)=>{key_data_1=vv}, 0xDF),
-              new ButtokTK80("6", (vv:Int)=>{key_data_1=vv}, 0xBF),
-              new ButtokTK80("7", (vv:Int)=>{key_data_1=vv}, 0x7F),
-              new ButtokTK80("READ\nDECR", (vv:Int)=>{key_data_3=vv}, 0xF7, true),
-            )
-          },
-          new HBox {
-            children = List(
-              new ButtokTK80("0", (vv:Int)=>{key_data_1=vv}, 0xFE),
-              new ButtokTK80("1", (vv:Int)=>{key_data_1=vv}, 0xFD),
-              new ButtokTK80("2", (vv:Int)=>{key_data_1=vv}, 0xFB),
-              new ButtokTK80("3", (vv:Int)=>{key_data_1=vv}, 0xF7),
-              new ButtokTK80("WRITE\nINCR", (vv:Int)=>{key_data_3=vv}, 0xDF, true),
-            )
-          },
-          new HBox {
-            children =  List (
-            )
-          }
-        )
-      }
-    }
-  }
-
-  class TK80TestThread(i:Integer) {
-    var running = true
-    val backgroundThread = new Thread {
-      setDaemon(true)
-      override def run = {
-        runTask
-      }
-    }
-
-    def startTask = {
-        backgroundThread.start()
-    }
-
-    def runTask= {
-      iotesters.Driver.execute(arg, () => new TopSupervisor("src/hex/tk80.hex")) {
-        c => new PeekPokeTester(c) {
-          val regs = List(Core.A_op, Core.B_op, Core.C_op, Core.D_op, Core.E_op, Core.F_op, Core.H_op, Core.L_op)
-          pc = peek(c.io.PC).U
-          var sp = peek(c.io.SP).U
-          var ix = peek(c.io.IX).U
-          var iy = peek(c.io.IY).U
-              r = peek(c.io.R).U
-              r_unit_test = peek(c.io.R).toInt
-          var i = peek(c.io.I).U
-          var iff1 = 0.U //peek(c.io.IFF).U
-          var iff2 = 0.U //peek(c.io.IFF2).U
-    
-          poke(c.io.INT_, 1)
-          var next_m1_int = 0
-          while(peek(c.io.halt_)==1 && running) {
-            val machine_state:Int = peek(c.io.machine_state).toInt
-            val t_cycle:Int = peek(c.io.t_cycle).toInt
-
-            if (machine_state == 1 &&  t_cycle == 1 && (prev_state != 1 || (prev_state == 1 && prev_t_cycle ==4 )) )   {
-              pc = peek(c.io.PC).U
-              sp = peek(c.io.SP).U
-              ix = peek(c.io.IX).U
-              iy = peek(c.io.IY).U
-              r = peek(c.io.R).U
-              i = peek(c.io.I).U
-              iff1 = peek(c.io.IFF1).U
-              iff2 = peek(c.io.IFF2).U
-              poke(c.io.keys(0), key_data_1)
-              poke(c.io.keys(1), key_data_2)
-              poke(c.io.keys(2), key_data_3)
-
-              val pc_str = f"${pc.intValue()}%04X" 
-              var others_str = ""
-              if (pc.intValue() >= 0x01F9) {
-                others_str = pc_str
-              }
-
-              reset(if (reset_button==0xFF) 0 else 1)
-
-              val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
-              val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
-  //            val others_str = f"${peek(c.io.key_output)}"
-//              others_str = f"${step_run} ${!step_run}"
-              Platform.runLater( () -> {
-                pc_text.setText(pc_str)
-                addr_text.setText(address_str)
-                data_text.setText(data_str)
-                others_text.setText((others_str))
-              })
-            }
-            if (peek(c.io.IFF1) == 1) {
-              if (peek(c.io.M1_) == 0) {
-                next_m1_int = next_m1_int + 16
-                poke(c.io.INT_,!step_run)
-              }
-            } else {
-              poke(c.io.INT_, 1)
-              next_m1_int = 0
-            }
-            step(1)
-            prev_state = machine_state
-            prev_t_cycle = t_cycle
-            prev_pc = pc
-          }
-        }
-      }
-    }
-  }
 }
 
 object TopTest extends App {
@@ -418,7 +183,7 @@ object TopTest extends App {
       var i = peek(c.io.I).U
       var iff1 = 0.U //peek(c.io.IFF).U
       var iff2 = 0.U //peek(c.io.IFF2).U
-      val itt = unit_test.initialize(regs.map( n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
+      val itt = unit_test.initialize(regs.map(n => peek(c.io.regs_front(n.toInt)).U), regs.map( n => peek(c.io.regs_back(n.toInt)).U), pc.toInt, sp.toInt, ix.toInt, iy.toInt, iff1.toInt, iff2.toInt,  r.toInt, i.toInt)
 
       var counter = 0
       var key = 0
@@ -540,25 +305,25 @@ case class Status(pc:Integer, regs:Array[UInt], sp:Integer, ix:Integer, iy:Integ
 
   def print(r_unit_test:Integer):String = {
     f"$PC%04X " +
-      regfiles.map( {n => val dd = n.litValue; f"$dd%02X "}).reduce( (z, n) => z + n ) +
+      regfiles.map({n => val dd = n.litValue; f"$dd%02X "}).reduce( (z, n) => z + n ) +
       f"$SP%04X $IX%04X $IY%04X $r_unit_test%02X $I%02X $IFF1%02X $IFF2%02X"
   }
 
   // for test
   def getRegsDiff(regs_f:List[UInt], regs_b:List[UInt]) =
-    for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
+    for ((s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
     yield (s,d) 
   
   def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff1:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
-    for ( (s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
-      if ( s.litValue != d.litValue ) {
+    for ((s, d) <- regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
+      if (s.litValue != d.litValue ) {
       //  println(s,d)
         return false
         Breaks.break()
       }
 //      println(s,d)
     }
-    if ( sp != SP ) return false
+    if (sp != SP ) return false
     true 
   }
 }
@@ -682,13 +447,13 @@ class UnitTest(filename:String) {
 
   // for test
   def getRegsDiff(regs_f:List[UInt], regs_b:List[UInt]) {
-    for ( (s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
+    for ((s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray))
     yield (s,d) 
   }
 
   def check(regs_f:List[UInt],regs_b:List[UInt], pc:Integer, sp:Integer, ix:Integer, iy:Integer, iff:Integer, iff2:Integer, r:Integer, i:Integer): Boolean = {
-    for ( (s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
-      if ( s != d ) Breaks.break()
+    for ((s, d) <- prev_status.regfiles zip Array.concat(regs_f.toArray, regs_b.toArray)) {
+      if (s != d ) Breaks.break()
       false
     }
     true 

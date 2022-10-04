@@ -59,6 +59,16 @@ class Memory(filename:String) extends Module {
   val DATAL = Wire(UInt(8.W))
   DATAL := mem.read(0x83EC.U)
 
+  val ADDRESS_LEDS = Wire(Vec(4,UInt(8.W)))
+  for (i<-0 to 3) {
+    ADDRESS_LEDS(i) := mem.read(0x83FB.U-i.asUInt)
+  }
+
+  val DATA_LEDS = Wire(Vec(4,UInt(8.W)))
+  for (i<-0 to 3) {
+    DATA_LEDS(i) := mem.read(0x83FF.U-i.asUInt)
+  }
+
   val DISP = Wire(Vec(4,UInt(8.W)))
   for (i<-0 to 3) {
     DISP(i) := mem.read((0x83F4.U+i.asUInt()))
@@ -72,11 +82,9 @@ class Memory(filename:String) extends Module {
   when(io.imem.MREQ_ === 0.B) {
     when(io.imem.RD_ === 0.U) {
       io.imem.data := mem(io.imem.addr)
-//      printf(f"MEMREAD:${io.imem.addr}, ${io.imem.data}")
     }
     when(io.imem.WR_ === 0.B) {
       mem.write(io.imem.addr, io.imem.data1)
-//      printf(f"MEMWRITE:${io.imem.addr}, ${io.imem.data1}")
     }
   }
 
@@ -87,5 +95,4 @@ class Memory(filename:String) extends Module {
   dontTouch(DATAH)
   dontTouch(DATAL)
   dontTouch(DISP)
-//  printf("%d\n", peek)
 }
