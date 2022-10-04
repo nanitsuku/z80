@@ -46,16 +46,17 @@ class seven_segment extends StackPane {
     val amber_color = Color.rgb(0xff, 0xc3, 0x49, 1.00000000)
     val red = Color.rgb(0xff, 0x11, 0x11, 1.00000000)
 
-    val A = new segment_path {elements = List(MoveTo(218.61162321, -1010.8041333), LineTo(595.76687550 ,-1010.8041333), LineTo(595.76687550, -954.90872361), LineTo(218.61162321, -954.90872361), LineTo(218.61162321, -1010.8041333))} 
-    val B = new segment_path {elements = List(MoveTo(571.11290540, -578.56008614), LineTo(595.76684296 ,-954.90868478), LineTo(651.54270452, -951.25490577), LineTo(626.88876696, -574.90630714), LineTo(571.11290540, -578.56008614))} 
-    val C = new segment_path {elements = List(MoveTo(546.45898247, -146.31590720), LineTo(571.11292003 ,-522.66450584), LineTo(626.88878158, -519.01072683), LineTo(602.23484402, -142.66212820), LineTo(546.45898247, -146.31590720))} 
+    val A = new segment_path {elements = List(MoveTo(218.61162321, -1010.8041333), LineTo(595.76687550 ,-1010.8041333), LineTo(595.76687550, -954.90872361), LineTo(218.61162321, -954.90872361), LineTo(218.61162321, -1010.8041333))}
+    val B = new segment_path {elements = List(MoveTo(571.11290540, -578.56008614), LineTo(595.76684296 ,-954.90868478), LineTo(651.54270452, -951.25490577), LineTo(626.88876696, -574.90630714), LineTo(571.11290540, -578.56008614))}
+    val C = new segment_path {elements = List(MoveTo(546.45898247, -146.31590720), LineTo(571.11292003 ,-522.66450584), LineTo(626.88878158, -519.01072683), LineTo(602.23484402, -142.66212820), LineTo(546.45898247, -146.31590720))}
     val D = new segment_path {elements = List(MoveTo(169.30368499, -146.31586030), LineTo(546.45893728 ,-146.31586030), LineTo(546.45893728,  -90.42045413), LineTo(169.30368499,  -90.42045413), LineTo(169.30368499, -146.31586030))}
     val E = new segment_path {elements = List(MoveTo(113.52781140, -149.96961499), LineTo(138.18174896 ,-526.31821362), LineTo(193.95761052, -522.66443462), LineTo(169.30367296, -146.31583598), LineTo(113.52781140, -149.96961499))}
-    val F = new segment_path {elements = List(MoveTo(138.18177372, -582.21373356), LineTo(162.83571128 ,-958.56233219), LineTo(218.61157284, -954.90855319), LineTo(193.95763528, -578.55995455), LineTo(138.18177372, -582.21373356))} 
-    val G = new segment_path {elements = List(MoveTo(193.95763968, -578.55993556), LineTo(571.11289197 ,-578.55993556), LineTo(571.11289197, -522.66452579), LineTo(193.95763968, -522.66452579), LineTo(193.95763968, -578.55993556))} 
+    val F = new segment_path {elements = List(MoveTo(138.18177372, -582.21373356), LineTo(162.83571128 ,-958.56233219), LineTo(218.61157284, -954.90855319), LineTo(193.95763528, -578.55995455), LineTo(138.18177372, -582.21373356))}
+    val G = new segment_path {elements = List(MoveTo(193.95763968, -578.55993556), LineTo(571.11289197 ,-578.55993556), LineTo(571.11289197, -522.66452579), LineTo(193.95763968, -522.66452579), LineTo(193.95763968, -578.55993556))}
+    val dot = new scalafx.scene.shape.Circle { centerX = 660; centerY = -80; radius = 40; fill = Color.Red }
 
-    children = List(A, B, C, D, E, F, G)
-  
+    children = List(dot, A, B, C, D, E, F, G)
+
     def set(value:Integer) = {
       def getColor(j:Integer):Color = { if ((value&j)>0) red else Color.Transparent }
 
@@ -66,6 +67,7 @@ class seven_segment extends StackPane {
       E.fill = getColor(0x10)
       F.fill = getColor(0x20)
       G.fill = getColor(0x40)
+      dot.fill = getColor(0x80)
     }
   }
   def set(value:Integer) = { sss.set(value) }
@@ -108,8 +110,7 @@ object TK80TestGUI extends JFXApp  {
   class ButtokTK80(name:String, value_set: (Int) => Unit, value:Int, special:Boolean = false) extends Button(name) {
     prefHeight = 75
     prefWidth = 75
-    
-//    font = Font()
+
     val color = if (special) "coral" else "green"
     val font_size = if (special) "16px" else "40px"
     style = f"-fx-base: '${color}'; -fx-font: bold ${font_size} 'Aria Black'; -fx-alignment: center; -fx-padding: 0px"
@@ -179,7 +180,7 @@ object TK80TestGUI extends JFXApp  {
            new HBox{
             fill = Color.Black
             alignment = Pos.Center
-            children = 
+            children =
               (address_leds.reverse ::: List(new HBox(){prefWidth=10}) ::: data_leds.reverse)
           },
           new HBox {
@@ -289,7 +290,7 @@ object TK80TestGUI extends JFXApp  {
           var i = peek(c.io.I).U
           var iff1 = 0.U //peek(c.io.IFF).U
           var iff2 = 0.U //peek(c.io.IFF2).U
-    
+
           poke(c.io.INT_, 1)
           var next_m1_int = 0
           while(peek(c.io.halt_)==1 && running) {
@@ -309,7 +310,7 @@ object TK80TestGUI extends JFXApp  {
               poke(c.io.keys(1), key_data_2)
               poke(c.io.keys(2), key_data_3)
 
-              val pc_str = f"${pc.intValue()}%04X" 
+              val pc_str = f"${pc.intValue()}%04X"
               var others_str = ""
               if (pc.intValue() >= 0x01F9) {
                 others_str = pc_str
