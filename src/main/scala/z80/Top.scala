@@ -26,7 +26,7 @@ class Top(filename:String) extends Module {
   })
   
   val core   = Module(new Core())
-  val memory = Module(new Memory(filename))
+  val memory = Module(new TK80Memory(filename))
   val key_encoder = Module(new KeyEncoder())
 
   val c8255a = Module(new C8255A())

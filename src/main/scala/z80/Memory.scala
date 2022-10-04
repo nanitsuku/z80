@@ -10,11 +10,8 @@ import chisel3.util.experimental.loadMemoryFromFileInline
 
 class ImemPortIo extends Bundle {
   val addr = Input(UInt(16.W))
-//  val data = Analog(UInt(8.W))
-//  val data = Decoupled(UInt(8.W))
   val data = Output(UInt(8.W))
   val data1 = Input(UInt(8.W))
-//  val data = Analog(8.W)
   val RD_ = Input(Bool())
   val WR_ = Input(Bool())
   val MREQ_ = Input(Bool())
@@ -30,17 +27,7 @@ class DecoderIo extends Bundle {
   val m1 = Output(Bool())
 }
 
-class Memory(filename:String) extends Module {
-  val io = IO(new Bundle {
-    val imem = new ImemPortIo()
-//    val DIG = Output(Vec(8, UInt(8.W)))
-  })
-
-  def fallingedge(x: Bool) = !x && RegNext(x)
-  def risingedge(x: Bool) = x && !RegNext(x)
-
-  val mem = Mem(65536, UInt(8.W))
-//  io.HOGE := mem.read(0x83EB.U)
+class TK80Memory (filename:String) extends Memory(filename, 65536) {
   val DIG = Wire(Vec(8, UInt(8.W)))
   for (i<-0 to 7) {
     DIG(i) := mem.read(0x83F8.U+i.asUInt())
@@ -74,6 +61,22 @@ class Memory(filename:String) extends Module {
     DISP(i) := mem.read((0x83F4.U+i.asUInt()))
   }
 
+  dontTouch(DIG)
+  dontTouch(KFLAG)
+  dontTouch(ADRESH)
+  dontTouch(ADRESL)
+  dontTouch(DATAH)
+  dontTouch(DATAL)
+  dontTouch(DISP)
+}
+
+class Memory(filename:String, capacity:Integer = 65536) extends Module {
+  val io = IO(new Bundle {
+    val imem = new ImemPortIo()
+  })
+
+  val mem = Mem(capacity, UInt(8.W))
+
   loadMemoryFromFile(mem, filename)
   loadMemoryFromFileInline(mem, filename)
 
@@ -87,12 +90,4 @@ class Memory(filename:String) extends Module {
       mem.write(io.imem.addr, io.imem.data1)
     }
   }
-
-  dontTouch(DIG)
-  dontTouch(KFLAG)
-  dontTouch(ADRESH)
-  dontTouch(ADRESL)
-  dontTouch(DATAH)
-  dontTouch(DATAL)
-  dontTouch(DISP)
 }
