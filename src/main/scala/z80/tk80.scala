@@ -321,18 +321,21 @@ object TK80TestGUI extends JFXApp  {
               val address_str = f"${peek(c.io.ADDRH_register).intValue()&0xFF}%02X${peek(c.io.ADDRL_register).intValue()&0xFF}%02X"
               val data_str = f"${peek(c.io.DATAH_register).intValue()&0xFF}%02X${peek(c.io.DATAL_register).intValue()&0xFF}%02X"
 
-              for (i <-0 to 3) {
-                address_leds(i).set(peek(c.io.ADDRESS_LEDS)(i).intValue())
-                data_leds(i).set(peek(c.io.DATA_LEDS)(i).intValue())
-              }
-  //            val others_str = f"${peek(c.io.key_output)}"
+              val address_leds_value = peek(c.io.ADDRESS_LEDS)
+              val data_leds_value = peek(c.io.DATA_LEDS)
+              val led_enable = (peek(c.io.PortCLOutput)>8)
+ //            val others_str = f"${peek(c.io.key_output)}"
 //              others_str = f"${step_run} ${!step_run}"
               Platform.runLater(() -> {
                 pc_text.setText(pc_str)
                 addr_text.setText(address_str)
                 data_text.setText(data_str)
 //                others_text.setText((others_str))
-              })
+                for (i <-0 to 3) {
+                  address_leds(i).set(if (led_enable) address_leds_value(i).intValue() else 0x00)
+                  data_leds(i).set(if (led_enable) data_leds_value(i).intValue() else 0x00)
+                }
+               })
             }
             if (peek(c.io.IFF1) == 1) {
               if (peek(c.io.M1_) == 0) {
@@ -343,7 +346,7 @@ object TK80TestGUI extends JFXApp  {
               poke(c.io.INT_, 1)
               next_m1_int = 0
             }
-            step(1)
+           step(1)
             prev_state = machine_state
             prev_t_cycle = t_cycle
             prev_pc = pc
