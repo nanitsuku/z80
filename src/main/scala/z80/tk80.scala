@@ -22,6 +22,7 @@ import scalafx.geometry.Insets
 import scalafx.scene.layout._
 import scalafx.Includes._
 import scalafx.application.Platform
+import javafx.scene.text.TextAlignment
 
 class segment_path extends Path {
   opacity =  1.00000000
@@ -90,7 +91,7 @@ object TK80TestGUI extends JFXApp  {
   var r_unit_test = 0
   val arg = Array("--backend-name", backend, "--target-dir", driverTestDir, "--top-name", "TopSupervisor", "--display-base", "16", "--generate-vcd-output", "on", "--tr-mem-to-vcd", "mem1:h83c0-83ff")
 
-  val pc_text = new Label() { textFill = Color.Red }
+  val pc_text = new Label() { textFill = Color.Red; textAlignment = TextAlignment.RIGHT }
   val addr_text = new Label() { textFill = Color.Red }
   val data_text = new Label() { textFill = Color.Red }
   val others_text = new Label() { textFill = Color.Red }
@@ -175,7 +176,7 @@ object TK80TestGUI extends JFXApp  {
         background = new Background(Array(new BackgroundFill(Color.Black,new CornerRadii(0),Insets(0))))
         children = List(
           new HBox {
-            prefHeight = 20
+            prefHeight = 10
           },
            new HBox{
             fill = Color.Black
@@ -184,32 +185,13 @@ object TK80TestGUI extends JFXApp  {
               (address_leds.reverse ::: List(new HBox(){prefWidth=10}) ::: data_leds.reverse)
           },
           new HBox {
-            prefHeight = 20
+            prefHeight = 10
           },
-            pc_text, /*addr_text, data_text,*/ others_text,
-         new HBox {
-            children =  List(
-              new Button("StartTest") {
-                onMouseClicked = handle {
-                  ho.startTask
-                }
-              },
-              new Button("Quit") {
-                onMouseClicked = handle {
-                  ho.running = false
-                  close()
-                }
-              },
-              new CheckBox("Step") {
-                onMouseReleased = handle {
-                  step_run = selected.value
-                }
-              }
-            )
-          },
+          /*
           new HBox {
             prefHeight = 20
           },
+          */
           new HBox {
             children = List(
               new ButtokTK80("RET", (vv:Int)=>{key_data_3=vv}, 0xFD, true),
@@ -258,7 +240,35 @@ object TK80TestGUI extends JFXApp  {
           new HBox {
             children =  List (
             )
-          }
+          },
+          pc_text, /*addr_text, data_text,*/ others_text,
+          new HBox {
+            alignment = Pos.Center
+            children =  List(
+              new CheckBox("Step") {
+                selected = true
+                textFill = Color.Red
+                step_run = selected.value
+                onMouseReleased = handle {
+                  step_run = selected.value
+                }
+              },
+              new Button("StartTest") {
+                textFill = Color.Red
+                onMouseClicked = handle {
+                  ho.startTask
+                  this.visible = false
+                }
+              },
+              new Button("Quit") {
+                textFill = Color.Red
+                onMouseClicked = handle {
+                  ho.running = false
+                  close()
+                }
+              },
+            )
+          },
         )
       }
     }
