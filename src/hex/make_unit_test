@@ -1,4 +1,4 @@
-#!/ibin/bash
+#!/bin/bash
 
 files="ld alu16 alu push_pop incdec jp ei_di call rst ex alu16_2 others daa inout"
 for f in ${files} $1;do
