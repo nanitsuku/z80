@@ -16,10 +16,11 @@ jobs:
         with:
           repository: nanitsuku/Z80-ASM
           path: z80-asm
-      - name: install build essentials
+      - name: install necessary tools
         run: |
           apt-get update
-          apt-get install -y gcc make
+          apt-get install -y gcc make clang-9
+          ln -s /usr/bin/clang++-9 /usr/bin/clang++
       - name: build z80-asm
         run: |
           cd z80-asm
