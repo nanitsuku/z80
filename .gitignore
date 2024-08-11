@@ -342,7 +342,7 @@ hs_err_pid*
 # for VS code
 .metals/
 .bloop/
-project/metals.sbt
+**/metals.sbt
 
 #
 test_result/*
