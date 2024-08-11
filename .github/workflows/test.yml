@@ -20,12 +20,12 @@ jobs:
           cd z80-asm
           make
           ./z80-asm -h
-          cd ..
 
       - name: build z80 source files
         run: |
           cd src/hex
           PATH=../../z80-asm:$PATH
+          ls -al
           ./make_unit_test
 ##      - name: Cleanup
 ##        run: sed -i "s/%NAME%/test/g" build.sc
