@@ -14,13 +14,11 @@ jobs:
         with:
           repository: nanitsuku/Z80-ASM
           path: z80-asm
-
       - name: build z80-asm
         run: |
           cd z80-asm
           make
           ./z80-asm -h
-
       - name: build z80 source files
         run: |
           cd src/hex
@@ -33,6 +31,8 @@ jobs:
         uses: olafurpg/setup-scala@v14
         with:
           java-version: adopt@1.8
+      - name: install verilator
+        run: sudo apt-get install -y verilator
       - name: Cache Scala
         uses: coursier/cache-action@v5
       - name: SBT Test
