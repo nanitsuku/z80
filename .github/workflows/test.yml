@@ -21,6 +21,10 @@ jobs:
           cd z80-asm
           make
           ./z80-asm -h
+      - name: install build essentials
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
       - name: build z80 source files
         run: |
           cd src/hex
