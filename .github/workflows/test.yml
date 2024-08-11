@@ -20,7 +20,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc make
-       - name: build z80-asm
+      - name: build z80-asm
         run: |
           cd z80-asm
           make
@@ -31,7 +31,7 @@ jobs:
           PATH=../../z80-asm:$PATH
           ls -al
           ./make_unit_test
-      - name: Cleanup
+     - name: Cleanup
         run: sed -i "s/%NAME%/test/g" build.sc
       - name: Setup Scala
         uses: olafurpg/setup-scala@v14
