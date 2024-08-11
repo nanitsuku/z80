@@ -6,6 +6,8 @@ jobs:
   ci:
     name: ci
     runs-on: ubuntu-latest
+    container:
+      image: hdlc/verilator:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -31,10 +33,10 @@ jobs:
         uses: olafurpg/setup-scala@v14
         with:
           java-version: adopt@1.8
-      - name: install verilator
-        run: |
-          sudo apt-get install -y verilator
-          verilator --version
+#      - name: install verilator
+#        run: |
+#          sudo apt-get install -y verilator
+#          verilator --version
       - name: Cache Scala
         uses: coursier/cache-action@v5
       - name: SBT Test
