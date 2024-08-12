@@ -39,7 +39,7 @@ object ALU extends Enumeration {
   val rla = 0x17.U
   val rra = 0x1F.U
   val shift_c_op = 0x01.U
-  
+
   val daa = 0x27.U
   val cpl = 0x2F.U
   val daa_or_cpl_op = 0x02.U
@@ -61,7 +61,7 @@ class ALU extends Module {
   })
 
   val parity2_tbl = VecInit(Seq(1.U,0.U,0.U,1.U))
-  def getParity(temp:UInt):UInt = 
+  def getParity(temp:UInt):UInt =
     parity2_tbl(Cat(
       parity2_tbl(Cat(parity2_tbl(temp(7,6)), parity2_tbl(temp(5,4)))),
       parity2_tbl(Cat(parity2_tbl(temp(3,2)), parity2_tbl(temp(1,0))))
@@ -86,7 +86,7 @@ class ALU extends Module {
 
   val parity = WireDefault(0.U(8.W))
 
-  
+
   switch(io.calc_type(7,4)) {
     is(ALU.add_adc_op)  {
         temp := Cat(0.U(1.W), io.input_A) + Cat(0.U(1.W), io.input_B) + (io.calc_type(3) & io.input_carry)
@@ -107,7 +107,7 @@ class ALU extends Module {
       io.output_C := temp
     }
     is(ALU.and_xor_op) {
-      temp := Mux(io.calc_type(3), io.input_A ^ io.input_B , io.input_A & io.input_B) 
+      temp := Mux(io.calc_type(3), io.input_A ^ io.input_B , io.input_A & io.input_B)
       H := Mux(io.calc_type === ALU.and_op, 1.U, 0.U)
       PV := getParity(temp)
       N := 0.U
@@ -134,7 +134,7 @@ class ALU extends Module {
           C := temp(8)
           io.output_C := io.input_A  // no change
         }
-      }  
+      }
     }
     is(ALU.shift_op) {
 
