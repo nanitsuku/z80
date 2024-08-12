@@ -4,70 +4,20 @@ import chisel3.util._
 import org.scalatest.flatspec.AnyFlatSpec
 import z80._
 import java.util.concurrent.atomic.AtomicLongFieldUpdater
+import scalafx.Includes._
+import scalafx.application.JFXApp
+import scalafx.scene.Scene
+import scalafx.scene.layout.VBox
+import scalafx.scene.control.Button
+import scalafx.scene.control.TextField
+import scalafx.application.Platform
+import java.util.concurrent.CountDownLatch
+import org.scalatest.matchers.should.Matchers
 
-class MyModule extends Module {
-  val io = IO(new Bundle {
-    val in = Input(UInt(8.W))
-    val out = Output(UInt(8.W))
-  })
-
-  io.out := io.in + 1.U
-}
-
-class MyModuleSpec extends AnyFlatSpec with ChiselScalatestTester {
-  behavior of "MyModule"
-
-  it should "increment the input" in {
-    test(new MyModule) { c =>
-      c.io.in.poke(10.U)
-      c.clock.step(1)
-      c.io.out.expect(11.U)
-    }
-  }
-}
-
-class hoge() {
-
-  print("hoge")
-  val a = new ALUTestThread(1)
-
-  a.startTask
-}
-
-class ALUTestThread(i:Integer) extends AnyFlatSpec with ChiselScalatestTester {
-  val aa = i
-
-  it should "hogehoge" in {
-    val backgroundThread = new Thread {
-      setDaemon(true)
-      override def run = {
-        runTask
-      }
-    }
-
-    backgroundThread.start()
-  }
-
-  def test() = {
-    print("hoge")
-  }
-
-  def startTask = {
-//    backgroundThread.start()
-    print("hoge")
-  }
-
-  def runTask= {
-//    new MyModuleSpec()
-    val c = new ALUTester()
-    c.execute()
-  }
-}
-
-class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
+class ALUTestSpec extends AnyFlatSpec with ChiselScalatestTester {
   behavior of "ALU"
 
-  it should "add two numbers" in {
+  it should "ADD" in {
     test(new ALU) { c =>
       var F = 0
       val input_b = 100;
@@ -76,7 +26,7 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
 
       for( i<- 0x00 to 0xFF by 1) {
         /* add */
-        println(s"===add===")
+        //        println(s"===add===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
@@ -85,11 +35,22 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
         intermediatel = (i & 0x0f) + (input_b & 0x0f)
         F = calc_expect(ALU.add_op, i, input_b, intermediate, intermediatel)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
+        //        println(s"${c.io.output_C.peek().litValue}")
         c.io.flag.expect((F | 0x28).U)
         c.io.output_C.expect((if (intermediate > 255) intermediate - 256 else intermediate).U)
+      }
+    }
+  }
 
-        println(s"===adc===")
+  it should "ADC" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
+        //        println(s"===adc===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
@@ -98,12 +59,23 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
         intermediatel = (i & 0x0f) + (input_b & 0x0f) + 1
         F = calc_expect(ALU.add_op, i, input_b, intermediate, intermediatel)
         c.clock.step(1)
-        println(s"${i} ${input_b} ${c.io.output_C.peek().litValue}")
+        //        println(s"${i} ${input_b} ${c.io.output_C.peek().litValue}")
         c.io.flag.expect((F | 0x28).U)
         c.io.output_C.expect((if (intermediate > 255) intermediate - 256 else intermediate).U)
+      }
+    }
+  }
 
+  it should "SUB" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* sub */
-        println(s"===sub===")
+        //        println(s"===sub===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
@@ -112,12 +84,23 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
         val intermediatelSub = (i & 0x0f) - (input_b & 0x0f)
         val FSub = calc_expect(ALU.sub_op, i, input_b, intermediateSub, intermediatelSub)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
+        //        println(s"${c.io.output_C.peek().litValue}")
         c.io.flag.expect((FSub | 0x28).U)
         c.io.output_C.expect((if (intermediateSub < 0) intermediateSub + 256 else intermediateSub).U)
+      }
+    }
+  }
 
+  it should "SBC" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* sbc */
-        println(s"===sbc===")
+        //      println(s"===sbc===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
@@ -126,57 +109,100 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
         val intermediatelSbc = (i & 0x0f) - (input_b & 0x0f) - 1
         val FSbc = calc_expect(ALU.sbc_op, i, input_b, intermediateSbc, intermediatelSbc)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
-        printlnFlag(c.io.flag.peek())
+        //        println(s"${c.io.output_C.peek().litValue}")
+        //        printlnFlag(c.io.flag.peek())
         c.io.flag.expect((FSbc | 0x28).U)
         c.io.output_C.expect((if (intermediateSbc < 0) intermediateSbc + 256 else intermediateSbc).U)
+      }
+    }
+  }
 
+  it should "AND" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* and */
-        println(s"===and===")
+        //        println(s"===and===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
         c.io.calc_type.poke(ALU.and_op)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
-        printlnFlag(c.io.flag.peek())
+        //        println(s"${c.io.output_C.peek().litValue}")
+        //        printlnFlag(c.io.flag.peek())
         c.io.output_C.expect((i & input_b).U)
+      }
+    }
+  }
 
+  it should "XOR" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* xor */
-        println(s"===xor===")
+        //        println(s"===xor===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
         c.io.calc_type.poke(ALU.xor_op)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
-        printlnFlag(c.io.flag.peek())
+        //        println(s"${c.io.output_C.peek().litValue}")
+        //        printlnFlag(c.io.flag.peek())
         c.io.output_C.expect((i ^ input_b).U)
+      }
+    }
+  }
 
+  it should "OR" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* or */
-        println(s"===or===")
+        //        println(s"===or===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
         c.io.calc_type.poke(ALU.or_op)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
-        printlnFlag(c.io.flag.peek())
+        //        println(s"${c.io.output_C.peek().litValue}")
+        //        printlnFlag(c.io.flag.peek())
         c.io.output_C.expect((i | input_b).U)
+      }
+    }
+  }
 
+  it should "CP" in {
+    test(new ALU) { c =>
+      var F = 0
+      val input_b = 100;
+      var intermediate = 0;
+      var intermediatel = 0;
+
+      for( i<- 0x00 to 0xFF by 1) {
         /* cp */
-        println(s"===cp===")
+        //        println(s"===cp===")
         c.io.input_A.poke(i.U)
         c.io.input_B.poke(input_b.U)
         c.io.input_carry.poke(1.U)
         c.io.calc_type.poke(ALU.cp_op)
         c.clock.step(1)
-        println(s"${c.io.output_C.peek().litValue}")
+        //        println(s"${c.io.output_C.peek().litValue}")
         c.io.output_C.expect(i.U)
-        printlnFlag(c.io.flag.peek())
+        //        printlnFlag(c.io.flag.peek())
       }
     }
-
   }
 
   def calc_expect(calc_type:UInt, input_a:Integer, input_b:Integer, intermediate:Integer, intermediatel:Integer):Int = {
@@ -208,5 +234,87 @@ class ALUTester extends AnyFlatSpec with ChiselScalatestTester {
   def printlnFlag(flag: UInt): Unit = {
     val binaryString = flag.litValue.toString(2).reverse.padTo(8, '0').reverse
     println(s"flag: $binaryString")
+  }
+}
+
+object ALUTestGUI extends JFXApp  {
+
+  //  def nativeLibPath = System.getProperty("path.separator") + ("~/.openjfx/cache/ / "native" )
+
+  val tf = new TextField()
+  stage = new JFXApp.PrimaryStage {
+    title = "ALUTestGUI"
+    scene = new Scene() {
+      root = new VBox {
+        children = List(
+        new Button("StartTest") {
+          onMouseClicked = handle {
+            val ho = new ALUTestThread(3)
+            ho.startTask
+          }
+        },
+        new Button("Quit") {
+          onMouseClicked = handle {
+            close()
+          }
+        },
+        tf)
+      }
+    }
+  }
+
+  class ALUTestThread(i:Integer) {
+    val aa = i
+    val backgroundThread = new Thread {
+      setDaemon(true)
+      override def run = {
+        runTask
+      }
+    }
+
+    def startTask = {
+      backgroundThread.start()
+    }
+
+    def runTask= {
+      //val c = new ALUTester()
+      //val c = new ALUTestForGUI(new ALU)
+      val c = new ALUTestForGUI()
+      c.execute()
+      /*
+      iotesters.Driver.execute(Array(""), () => new ALU()) {
+      c => new ALUTestForGUI(c)
+      }
+      */
+    }
+  }
+
+  //  class ALUTestForGUI(c: ALU) extends AnyFlatSpec with ChiselScalatestTester {
+  class ALUTestForGUI extends AnyFlatSpec with ChiselScalatestTester {
+    //    private val alu = c
+
+    it should "ADD" in {
+      test(new ALU) { c =>
+        for( i<- 0x00 to 0xFF by 1) {
+          c.io.input_A.poke(i)
+          c.io.input_B.poke(100)
+          c.io.calc_type.poke(ALU.add_op)
+          c.clock.step(1)
+          val ppp = s"${c.io.output_C.peek().litValue.toInt}"
+
+          Platform.runLater( () -> {
+            tf.setText(ppp)
+          })
+          c.io.output_C.expect(if((i+100)>255) (i+100-256) else (i+100))
+        }
+      }
+    }
+  }
+}
+
+class ALUTestGUISpec extends AnyFlatSpec with Matchers {
+  "ALUTestGUI" should "run without errors" in {
+    ALUTestGUI.main(Array.empty[String])
+    succeed
   }
 }
