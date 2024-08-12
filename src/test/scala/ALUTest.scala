@@ -248,13 +248,13 @@ object ALUTestGUI extends JFXApp  {
       root = new VBox {
         children = List(
         new Button("StartTest") {
-          onMouseClicked = handle {
+          onMouseClicked = _ => {
             val ho = new ALUTestThread(3)
             ho.startTask
           }
         },
         new Button("Quit") {
-          onMouseClicked = handle {
+          onMouseClicked = _ => {
             close()
           }
         },
