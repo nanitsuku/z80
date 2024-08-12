@@ -30,7 +30,7 @@ class DecoderIo extends Bundle {
 class TK80Memory (filename:String) extends Memory(filename, 65536) {
   val DIG = Wire(Vec(8, UInt(8.W)))
   for (i<-0 to 7) {
-    DIG(i) := mem.read(0x83F8.U+i.asUInt())
+    DIG(i) := mem.read(0x83F8.U+i.asUInt)
   }
 
   val KFLAG = Wire(UInt(8.W))
@@ -58,7 +58,7 @@ class TK80Memory (filename:String) extends Memory(filename, 65536) {
 
   val DISP = Wire(Vec(4,UInt(8.W)))
   for (i<-0 to 3) {
-    DISP(i) := mem.read((0x83F4.U+i.asUInt()))
+    DISP(i) := mem.read((0x83F4.U+i.asUInt))
   }
 
   dontTouch(DIG)

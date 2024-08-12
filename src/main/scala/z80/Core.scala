@@ -70,7 +70,7 @@ class Core extends Module {
   ///// registers
 
   val regfiles_front = Reg(Vec(8, UInt(8.W)))
-  val regfiles_back = Reg(Vec(8, UInt(8.W))) 
+  val regfiles_back = Reg(Vec(8, UInt(8.W)))
 
   val A = WireDefault(regfiles_front(Core.A_op))
   val B = WireDefault(regfiles_front(Core.B_op))
@@ -145,7 +145,7 @@ class Core extends Module {
           is(2.U) {
 //            mem_refer_addr := PC_next
             when(m_t_cycle===2.U) {
-                machine_state_next := Core.MX_state_8 
+                machine_state_next := Core.MX_state_8
                 dummy_cycle := 5.U
                 PC_next := PC_next + 1.U
                 opcode_index := opcode_index + 1.U
@@ -161,7 +161,7 @@ class Core extends Module {
               when(fallingedge(io.clock2.asBool())) {
                 machine_state_next := Core.M1_state
               }
-            } 
+            }
           }
         }
       }
@@ -180,7 +180,7 @@ class Core extends Module {
     val output = WireDefault(register)
     val result = RegInit(0.U(16.W))
     val oooo = RegInit(0.U(16.W))
-  
+
     alu16.io.input_register := input
     alu16.io.offset := Mux(instruction(3) === 0.U, 1.S, -1.S)
     switch(machine_state) {
@@ -258,7 +258,7 @@ class Core extends Module {
           when(m_t_cycle===2.U) {
             temp := alu.io.output_C
           }
- 
+
           dummy_cycle := 2.U
         }
         is(Core.MX_state_8) {
@@ -313,7 +313,7 @@ class Core extends Module {
               mem_refer_addr := PC_next
               PC_next := PC_next + 1.U
               opcode_index := opcode_index + 1.U
-            } .otherwise { // ld A,(BC|DE) 
+            } .otherwise { // ld A,(BC|DE)
               regfiles_front(Core.A_op) := io.bus.data
               when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool())) {
                 machine_state_next := Core.M1_state
@@ -426,16 +426,16 @@ class Core extends Module {
     }
   }
 
-  def rp_pair_af = (RP:UInt) => 
+  def rp_pair_af = (RP:UInt) =>
     ListLookup(RP, List(4.U, 6.U), //List(Core.B_op, Core.C_op),
       Array(
-        new BitPat(Core.BC_op.litValue(), 3, 2) -> List(Core.B_op, Core.C_op),
-        new BitPat(Core.DE_op.litValue(), 3, 2) -> List(Core.D_op, Core.E_op),
-        new BitPat(Core.HL_op.litValue(), 3, 2) -> List(Core.H_op, Core.L_op),
-        new BitPat(Core.SP_op.litValue(), 3, 2) -> List(Core.A_op, Core.F_op),
+        new BitPat(Core.BC_op.litValue, 3, 2) -> List(Core.B_op, Core.C_op),
+        new BitPat(Core.DE_op.litValue, 3, 2) -> List(Core.D_op, Core.E_op),
+        new BitPat(Core.HL_op.litValue, 3, 2) -> List(Core.H_op, Core.L_op),
+        new BitPat(Core.SP_op.litValue, 3, 2) -> List(Core.A_op, Core.F_op),
      )
     )
- 
+
 
   def push_pop(opcode:UInt) {
     val RP = opcode(5,4)
@@ -479,7 +479,7 @@ class Core extends Module {
             }
           }
         }
-      } 
+      }
       is(1.B) { // PUSH
         switch(machine_state) {
           is(Core.M1_state) {
@@ -625,7 +625,7 @@ class Core extends Module {
   }
 
   def ld_mem_r_n(opcode:UInt) {
-    // LD (HL), r     
+    // LD (HL), r
     // LD (HL), n
     switch (machine_state) {
       is (Core.M1_state) {
@@ -650,7 +650,7 @@ class Core extends Module {
 //          printf(p"${Hexadecimal(opcodes(0))} ${Hexadecimal(opcodes(1))}\n")
           io.bus.data1 := opcodes(1)
         } .otherwise {
-          io.bus.data1 := regfiles_front(opcodes(0)(2,0)) 
+          io.bus.data1 := regfiles_front(opcodes(0)(2,0))
         }
         when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool())) {
           machine_state_next := Core.M1_state
@@ -733,12 +733,12 @@ class Core extends Module {
     machine_state_next := Core.M1_state
     opcode_index := 0.U
   }
-  
+
   def ret(opcode:UInt) {
-    // RET M1(4) M2(3) M2(3) 
+    // RET M1(4) M2(3) M2(3)
     // RET no cond  M1(4) MX(1)
-    // RET cond M1(4) MX(1) M2(3) M2(3) 
-  
+    // RET cond M1(4) MX(1) M2(3) M2(3)
+
     val op = WireDefault(Cat(opcodes(0)(0), opcodes(0)(5,3)))
     val cond = MuxCase(0.B,
       Array(
@@ -753,11 +753,11 @@ class Core extends Module {
         (op === "b0111".U && S_flag === 1.U) -> 1.B,
       )
     )
-  
+
     switch(machine_state) {
       is(Core.M1_state) {
         when(op==="b1001".U) {
-          machine_state_next := Core.M2_state 
+          machine_state_next := Core.M2_state
         } otherwise {
           machine_state_next := Core.MX_state_8
         }
@@ -792,7 +792,7 @@ class Core extends Module {
       }
     }
   }
-  
+
   def in_out(opcode:UInt) {
     switch(machine_state) {
       is(Core.M1_state) {
@@ -876,7 +876,7 @@ class Core extends Module {
         }
       }
     }
-  
+
   }
 
 def call(opcode:UInt) {
@@ -950,7 +950,7 @@ def call(opcode:UInt) {
           mem_refer_addr := alu16.io.output
           io.bus.data1 := (PC+1.U)(7,0)
           PC_next := Cat(opcodes(2),opcodes(1))
-  
+
           when(m_t_cycle===2.U && fallingedge(io.clock2.asBool)) {
             machine_state_next := Core.M1_state
           }
@@ -987,12 +987,12 @@ def add16(opcode:UInt) {
       val to_be_added = regs_pair_data
       val HL_ = Cat(regfiles_front(Core.H_op), regfiles_front(Core.L_op))
       val HL_S_ = ( HL_ & 0x0FFF.U)
-     
+
       val to_be_added_S_ = ( to_be_added & 0x0FFF.U )
-     
+
       val added = Cat(0.B,HL_) + Cat(0.B,to_be_added)
       val added_s = HL_S_ + to_be_added_S_
-     
+
       result := added(15,0)
       F_ := (regfiles_front(Core.F_op) & 0xEC.U) | (added_s(12) << 4) | added(16)
     }
@@ -1166,13 +1166,13 @@ def ld_rpp_a(opcode:UInt) {
             when(fallingedge(io.clock2.asBool) && m_t_cycle === 3.U) {
               mem_refer_addr := mem_refer_addr + 1.U
             }
-          } 
+          }
           is(4.U) {
             io.bus.data1 := H
             when(m_t_cycle === 2.U && fallingedge(io.clock2.asBool)) {
               machine_state_next := Core.M1_state
             }
-          } 
+          }
         }
       }
     }
@@ -1201,8 +1201,8 @@ def ex_af_afp(opcode:UInt) {
 
   tmp(0) := regfiles_front(Core.A_op)
   tmp(1) := regfiles_front(Core.F_op)
-  regfiles_front(Core.A_op) := regfiles_back(Core.A_op) 
-  regfiles_front(Core.F_op) := regfiles_back(Core.F_op) 
+  regfiles_front(Core.A_op) := regfiles_back(Core.A_op)
+  regfiles_front(Core.F_op) := regfiles_back(Core.F_op)
 
   regfiles_back(Core.A_op) := tmp(0)
   regfiles_back(Core.F_op) := tmp(1)
@@ -1213,7 +1213,7 @@ def ex_af_afp(opcode:UInt) {
 def cf(opcode:UInt) {
   when(m_t_cycle === 3.U) {
     switch(opcode(3)) {
-      is(0.B) { 
+      is(0.B) {
         // scf
         regfiles_front(Core.F_op) := regfiles_front(Core.F_op).bitSet(0.U, 1.B)
       }
@@ -1250,12 +1250,12 @@ def jr(opcode:UInt) {
           mem_refer_addr := PC_next
           machine_state_next := Core.M2_state
         }
-      } 
+      }
     }
     is(Core.M2_state) {
 
       dummy_cycle :=
-        MuxCase(5.U, 
+        MuxCase(5.U,
           Array(
             (opcode === 0x10.U) -> 6.U,
           )
@@ -1307,7 +1307,7 @@ def ld_rp_nn(opcode:UInt) {
               } .otherwise {
                 regfiles_front(rlp) := opcodes(1)
               }
-            } 
+            }
             is(3.U) {
             }
           }
@@ -1323,7 +1323,7 @@ def ld_rp_nn(opcode:UInt) {
               } .otherwise {
                 regfiles_front(rhp) := opcodes(2)
               }
-            } 
+            }
             is(3.U) {
             }
           }
@@ -1334,8 +1334,8 @@ def ld_rp_nn(opcode:UInt) {
 }
 
 def ei_di(opcode:UInt) {
-  IFF1 := opcode(3) 
-  IFF2 := opcode(3) 
+  IFF1 := opcode(3)
+  IFF2 := opcode(3)
 }
 
   def exx(opcode:UInt) {
@@ -1459,7 +1459,7 @@ def ei_di(opcode:UInt) {
     when(m_t_cycle===3.U) {
       val FF = regfiles_front(Core.F_op)
       val AA = regfiles_front(Core.A_op)
-  
+
       regfiles_front(Core.A_op) := (~AA)
       regfiles_front(Core.F_op) := ( FF | 0x12.U )
     }
@@ -1488,7 +1488,7 @@ def ei_di(opcode:UInt) {
     .elsewhen (opcodes(0) === BitPat("b00?1?000")||opcodes(0) === BitPat("b0010?000")) {/*printf("LD rp,nn\n");*/  jr(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b00??1001")) {/*printf("add hl,rp\n");*/  add16(opcodes(0));}
-    
+
     .elsewhen (opcodes(0) === BitPat("b000??111")) {/*printf("shift\n");*/  shift(opcodes(0));}
 
     .elsewhen (opcodes(0) === BitPat("b00100111")) {/*printf("daa\n");*/  daa(opcodes(0));}
@@ -1532,7 +1532,7 @@ def ei_di(opcode:UInt) {
     .otherwise {}
     */
   }
- 
+
   //**********************************
   // Instruction Fetch (IF) Stage
 
@@ -1668,7 +1668,7 @@ def ei_di(opcode:UInt) {
             m_t_cycle := Mux(m_t_cycle < 3.U, m_t_cycle + 1.U, 1.U)
           }
         }
-  
+
         when(m_t_cycle === 1.U) {
           io.bus.MREQ_ := 1.B
           when(fallingedge(io.clock2.asBool())) {
@@ -1701,10 +1701,10 @@ def ei_di(opcode:UInt) {
         when(m_t_cycle <= 3.U && fallingedge(io.clock2.asBool())) {
           m_t_cycle := Mux(m_t_cycle < 3.U, m_t_cycle + 1.U, 1.U)
         }
-  
+
         when(m_t_cycle === 1.U) {
           io.bus.WR_ := 1.B
-          // write memory 
+          // write memory
           io.bus.MREQ_ := 1.B
           when(fallingedge(io.clock2.asBool)) {
             io.bus.MREQ_ := 0.B
@@ -1751,7 +1751,7 @@ def ei_di(opcode:UInt) {
         decode()
       }
     }
-  } 
+  }
 
   dontTouch(interrupt)
 }
