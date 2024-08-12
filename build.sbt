@@ -1,10 +1,11 @@
 // See README.md for license details.
 
-ThisBuild / scalaVersion     := "2.12.13"
+ThisBuild / scalaVersion     := "2.12.17"
 ThisBuild / version          := "0.1.0"
 ThisBuild / organization     := "com.github.tkgdsg"
 
 Test / testOptions += Tests.Argument("-DwriteVcd=1")
+Test / fork := true
 
 lazy val osName = System.getProperty("os.name") match {
   case n if n.startsWith("Linux") => "linux"
